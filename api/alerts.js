@@ -1,26 +1,59 @@
-export default function handler(req, res) {
-  res.setHeader('Content-Type', 'application/json');
+import { neon } from '@neondatabase/serverless';
 
-  if (req.method === 'POST') {
-    const { title, message, active, type } = req.body || {};
-    return res.status(200).json({
-      id: 'alert-' + Date.now(),
-      title: title || 'ALERTA TEMPRANA PREVENTIVA',
-      message: message || '',
-      active: active !== undefined ? active : true,
-      type: type || 'warning',
-      updatedAt: new Date().toISOString()
-    });
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_H0k7WRIYfzyS@ep-fancy-sky-b6sxip9l-pooler.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require";
+
+export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  return res.status(200).json([
-    {
-      id: 'alert-1',
-      active: true,
-      type: 'warning',
-      title: 'ALERTA TEMPRANA PREVENTIVA DE INCENDIOS',
-      message: 'Condiciones de altas temperaturas y viento en el Valle de Aconcagua. Prohibidas las quemas agrícolas. Ante emergencias llame de inmediato al 132.',
-      updatedAt: new Date().toISOString()
+  try {
+    const sql = neon(DATABASE_URL);
+
+    // POST: ACTUALIZAR ALERTA EN VIVO
+    if (req.method === 'POST') {
+      const { title, message, active, type } = req.body || {};
+      const alertId = 'alert-1';
+      const isAct = active !== undefined ? active : true;
+      const t = title || 'ALERTA TEMPRANA PREVENTIVA';
+      const m = message || '';
+      const typ = type || 'warning';
+
+      await sql`
+        INSERT INTO alerts (id, active, type, title, message, updated_at)
+        VALUES (${alertId}, ${isAct}, ${typ}, ${t}, ${m}, CURRENT_TIMESTAMP)
+        ON CONFLICT (id) DO UPDATE SET
+          active = EXCLUDED.active,
+          type = EXCLUDED.type,
+          title = EXCLUDED.title,
+          message = EXCLUDED.message,
+          updated_at = CURRENT_TIMESTAMP;
+      `;
+
+      return res.status(200).json({
+        id: alertId,
+        active: isAct,
+        type: typ,
+        title: t,
+        message: m
+      });
     }
-  ]);
+
+    // GET: OBTENER ALERTA ACTIVA
+    const rows = await sql`
+      SELECT id, active, type, title, message, updated_at AS "updatedAt"
+      FROM alerts
+      LIMIT 1;
+    `;
+
+    return res.status(200).json(rows);
+  } catch (error) {
+    console.error('Error en /api/alerts con Neon:', error);
+    return res.status(500).json({ error: 'Error al conectar con la base de datos' });
+  }
 }

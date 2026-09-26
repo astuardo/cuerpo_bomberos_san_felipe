@@ -100,6 +100,30 @@ export const App: React.FC = () => {
         setStats(data);
       }
     });
+
+    // Refrescar al volver a la app o pestaña
+    const handleSync = () => {
+      if (document.visibilityState === 'visible') {
+        fetchJson('/api/news').then((data) => {
+          if (data && Array.isArray(data) && data.length > 0) {
+            setNews(data);
+          }
+        });
+        fetchJson('/api/alerts').then((data) => {
+          if (data && Array.isArray(data) && data.length > 0) {
+            setAlert(data[0]);
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleSync);
+    window.addEventListener('focus', handleSync);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
   }, []);
 
   // Navegación entre secciones
@@ -140,30 +164,35 @@ export const App: React.FC = () => {
     setNews(updatedList);
     localStorage.setItem('cbsf_news', JSON.stringify(updatedList));
 
-    // Intentar también en backend si está disponible
+    // Guardar en la base de datos Neon PostgreSQL
     try {
-      const url = isEdit ? `/api/news/${newsData.id}` : '/api/news';
-      const method = isEdit ? 'PUT' : 'POST';
-      await fetch(url, {
-        method,
+      const res = await fetch('/api/news', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newsData)
+        body: JSON.stringify(isEdit ? { ...newsData, id: newsData.id } : updatedList[0])
       });
-    } catch {
-      // Modo offline/Vercel silencioso
+      if (res.ok) {
+        const saved = await res.json();
+        // Si el servidor retornó la noticia guardada, actualizar
+        if (saved && saved.id) {
+          setNews((prev) => prev.map((n) => (n.id === saved.id ? saved : n)));
+        }
+      }
+    } catch (err) {
+      console.log('Guardado en cache local:', err);
     }
   };
 
-  // Eliminar noticia
+  // Eliminar noticia en Neon PostgreSQL
   const handleDeleteNews = async (id: string) => {
     const filtered = news.filter((n) => n.id !== id);
     setNews(filtered);
     localStorage.setItem('cbsf_news', JSON.stringify(filtered));
 
     try {
-      await fetch(`/api/news/${id}`, { method: 'DELETE' });
+      await fetch(`/api/news?id=${id}`, { method: 'DELETE' });
     } catch {
-      // Modo offline/Vercel silencioso
+      // Modo offline
     }
   };
 
