@@ -1,6 +1,10 @@
 import { neon } from '@neondatabase/serverless';
 
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_H0k7WRIYfzyS@ep-fancy-sky-b6sxip9l-pooler.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require";
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.warn('[Security Warning] DATABASE_URL no está configurada en las variables de entorno.');
+}
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
