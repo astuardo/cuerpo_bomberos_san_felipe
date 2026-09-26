@@ -455,6 +455,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         src={editingItem.imageUrl} 
                         alt="Vista previa" 
                         style={{ height: '150px', width: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null;
+                          target.src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=800&q=80';
+                        }}
                       />
                     </div>
                   )}

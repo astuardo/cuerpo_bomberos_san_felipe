@@ -76,8 +76,9 @@ export const NewsSection: React.FC<NewsSectionProps> = ({
                     height="340"
                     loading="lazy"
                     onError={(e) => {
-                      // Fallback si la imagen no carga
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=800&q=80';
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=800&q=80';
                     }}
                   />
                   <span className="news-card-badge">{item.category}</span>
