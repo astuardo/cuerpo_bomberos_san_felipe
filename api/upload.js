@@ -23,14 +23,11 @@ export default async function handler(req, res) {
     const rawFilename = req.query.filename || `noticia-${Date.now()}.jpg`;
     const filename = decodeURIComponent(rawFilename).replace(/[^a-zA-Z0-9.-]/g, '_');
 
-    // Comprobar token de Vercel Blob
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.warn('[Vercel Blob] BLOB_READ_WRITE_TOKEN no está configurada.');
-      return res.status(500).json({
-        error: 'BLOB_READ_WRITE_TOKEN no configurada',
-        message: 'Para subir imágenes a Vercel Blob, debes conectar una base Blob en Vercel (Pestaña Storage -> Blob).'
-      });
-    }
+    // Buscar cualquier token de Vercel Blob disponible en las variables de entorno
+    const tokenKey = Object.keys(process.env).find(
+      k => k === 'BLOB_READ_WRITE_TOKEN' || k.endsWith('_READ_WRITE_TOKEN') || k.includes('BLOB_TOKEN')
+    );
+    const blobToken = tokenKey ? process.env[tokenKey] : process.env.BLOB_READ_WRITE_TOKEN;
 
     // Leer el buffer del archivo enviado en el cuerpo de la petición
     const chunks = [];
@@ -45,19 +42,30 @@ export default async function handler(req, res) {
 
     // Subir a Vercel Blob con acceso público
     const contentType = req.headers['content-type'] || 'image/jpeg';
-    const blob = await put(filename, buffer, {
+    const putOptions = {
       access: 'public',
       contentType,
       addRandomSuffix: true,
-    });
+    };
+    if (blobToken) {
+      putOptions.token = blobToken;
+    }
+
+    const blob = await put(filename, buffer, putOptions);
 
     // Retorna { url: 'https://...public.blob.vercel-storage.com/...', downloadUrl, pathname, ... }
     return res.status(200).json(blob);
   } catch (error) {
     console.error('Error al subir a Vercel Blob:', error);
+    const msg = error.message || '';
+    const isMissingToken = msg.includes('No blob credentials found') || 
+                           msg.includes('BLOB_READ_WRITE_TOKEN') ||
+                           !process.env.BLOB_READ_WRITE_TOKEN;
     return res.status(500).json({
       error: 'Error al subir imagen a Vercel Blob',
-      message: error.message
+      message: isMissingToken 
+        ? 'El almacenamiento Vercel Blob no está conectado aún al proyecto en Vercel. Ve a la pestaña Storage en Vercel, conecta el Blob Store al proyecto y presiona Redeploy.'
+        : msg
     });
   }
 }
