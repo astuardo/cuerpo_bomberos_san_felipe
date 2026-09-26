@@ -38,6 +38,8 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
             src="/logo-bomberos.svg" 
             alt="Escudo Cuerpo de Bomberos San Felipe" 
             className="brand-logo-img" 
+            width="55"
+            height="55"
           />
           <div className="brand-text">
             <span className="brand-title">Cuerpo de Bomberos</span>

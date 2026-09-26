@@ -59,6 +59,8 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsItem, onCl
             <img 
               src={newsItem.imageUrl} 
               alt={newsItem.title} 
+              width="800"
+              height="420"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1200&q=80';

@@ -19,6 +19,8 @@ export const Footer: React.FC<FooterProps> = ({ companies, onSelectCompany, onOp
               <img 
                 src="/logo-bomberos.svg" 
                 alt="Escudo Bomberos San Felipe" 
+                width="48"
+                height="48"
                 style={{ width: '48px', height: '48px', filter: 'brightness(0) invert(1)' }} 
               />
               <div>

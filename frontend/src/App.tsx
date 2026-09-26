@@ -58,47 +58,48 @@ export const App: React.FC = () => {
   // Estado del Administrador / Encargado de Prensa
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
 
-  // Fetch de datos desde el backend al cargar
+  // Fetch de datos desde el backend/API al cargar
   useEffect(() => {
-    // Cargar noticias
-    fetch('/api/news')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && Array.isArray(data) && data.length > 0) {
-          setNews(data);
+    const fetchJson = async (url: string) => {
+      try {
+        const res = await fetch(url);
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          return await res.json();
         }
-      })
-      .catch((err) => console.log('Usando noticias locales:', err));
+      } catch {
+        // En caso de modo offline o sin conexión
+      }
+      return null;
+    };
+
+    // Cargar noticias
+    fetchJson('/api/news').then((data) => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setNews(data);
+      }
+    });
 
     // Cargar compañías
-    fetch('/api/companies')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && Array.isArray(data) && data.length > 0) {
-          setCompanies(data);
-        }
-      })
-      .catch((err) => console.log('Usando compañías locales:', err));
+    fetchJson('/api/companies').then((data) => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setCompanies(data);
+      }
+    });
 
     // Cargar alerta
-    fetch('/api/alerts')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && Array.isArray(data) && data.length > 0) {
-          setAlert(data[0]);
-        }
-      })
-      .catch((err) => console.log('Usando alerta local:', err));
+    fetchJson('/api/alerts').then((data) => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setAlert(data[0]);
+      }
+    });
 
     // Cargar estadísticas
-    fetch('/api/stats')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && data.companies) {
-          setStats(data);
-        }
-      })
-      .catch((err) => console.log('Usando stats locales:', err));
+    fetchJson('/api/stats').then((data) => {
+      if (data && data.companies) {
+        setStats(data);
+      }
+    });
   }, []);
 
   // Navegación entre secciones

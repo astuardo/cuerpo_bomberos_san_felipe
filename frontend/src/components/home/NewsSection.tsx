@@ -72,6 +72,8 @@ export const NewsSection: React.FC<NewsSectionProps> = ({
                     src={item.imageUrl}
                     alt={item.title}
                     className="news-card-img"
+                    width="600"
+                    height="340"
                     loading="lazy"
                     onError={(e) => {
                       // Fallback si la imagen no carga
