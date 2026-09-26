@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compilados
+dist/
+dist-ssr/
+*.local
+
+# Editor y SO
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Vercel
+.vercel/

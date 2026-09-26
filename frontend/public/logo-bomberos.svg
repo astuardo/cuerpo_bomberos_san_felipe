@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EB412F"/>
+      <stop offset="100%" stop-color="#9E1B10"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F9D423"/>
+      <stop offset="100%" stop-color="#FF4E50"/>
+    </linearGradient>
+  </defs>
+  <!-- Escudo Exterior -->
+  <path d="M 50 5 Q 85 5 90 35 Q 90 75 50 95 Q 10 75 10 35 Q 15 5 50 5 Z" fill="url(#shieldGrad)" stroke="#B71C1C" stroke-width="2"/>
+  <path d="M 50 10 Q 80 10 84 37 Q 84 70 50 88 Q 16 70 16 37 Q 20 10 50 10 Z" fill="none" stroke="#F9D423" stroke-width="1.8"/>
+  <!-- Hachas cruzadas -->
+  <line x1="28" y1="28" x2="72" y2="72" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <line x1="72" y1="28" x2="28" y2="72" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <polygon points="26,24 35,20 33,32 23,30" fill="#FFC107"/>
+  <polygon points="74,24 65,20 67,32 77,30" fill="#FFC107"/>
+  <!-- Casco de bombero central -->
+  <ellipse cx="50" cy="52" rx="20" ry="12" fill="#FFFFFF"/>
+  <path d="M 33 50 C 33 34 67 34 67 50 Z" fill="#222222"/>
+  <path d="M 46 36 L 54 36 L 52 46 L 48 46 Z" fill="#FFC107"/>
+  <!-- Estrella 1883 -->
+  <polygon points="50,18 53,24 60,24 54,28 56,34 50,30 44,34 46,28 40,24 47,24" fill="#FFC107"/>
+  <text x="50" y="80" text-anchor="middle" font-family="'Montserrat', sans-serif" font-weight="900" font-size="8.5" fill="#FFFFFF" letter-spacing="1">1883</text>
+</svg>

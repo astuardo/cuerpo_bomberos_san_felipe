@@ -1,0 +1,198 @@
+@import './variables.css';
+
+/* Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--cbs-gray-dark);
+  background-color: var(--cbs-white);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  color: var(--cbs-gray-dark);
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+h1 {
+  font-size: 2.5rem;
+  letter-spacing: -0.5px;
+}
+
+h2 {
+  font-size: 2rem;
+  letter-spacing: -0.3px;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+h4 {
+  font-size: 1.25rem;
+}
+
+p {
+  margin-bottom: 1rem;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: var(--transition-fast);
+}
+
+/* Layout Utilities */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.section-padding {
+  padding-top: 4.5rem;
+  padding-bottom: 4.5rem;
+}
+
+.section-title-wrap {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.section-badge {
+  display: inline-block;
+  color: var(--cbs-red);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+/* Estilo CBS de encabezados con borde rojo lateral */
+.cbs-blockquote-title {
+  border-left: 6px solid var(--cbs-red);
+  padding-left: 1rem;
+  margin-bottom: 2rem;
+}
+
+.cbs-blockquote-title h2 {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.85rem;
+  text-transform: uppercase;
+  color: var(--cbs-gray-dark);
+  letter-spacing: 0.5px;
+}
+
+/* Botones institucionales estilo CBS */
+.btn-primary {
+  background-color: var(--cbs-red);
+  color: var(--cbs-white);
+  padding: 0.85rem 1.8rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--cbs-red);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background-color: var(--cbs-red-hover);
+  border-color: var(--cbs-red-hover);
+  color: var(--cbs-white);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn-cooperar {
+  background-color: var(--cbs-black);
+  color: var(--cbs-white);
+  padding: 0.6rem 1.4rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: var(--transition-fast);
+}
+
+.btn-cooperar:hover {
+  background-color: var(--cbs-gray-dark);
+  color: var(--cbs-white);
+}
+
+.btn-outline {
+  border: 2px solid var(--cbs-red);
+  color: var(--cbs-red);
+  background: transparent;
+  padding: 0.75rem 1.6rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-outline:hover {
+  background-color: var(--cbs-red);
+  color: var(--cbs-white);
+}
+
+/* Badges de Categoría */
+.category-badge {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--cbs-red);
+  display: inline-block;
+  margin-bottom: 0.4rem;
+}

@@ -1,0 +1,48 @@
+:root {
+  /* Paleta Oficial Inspirada en Bomberos (CBS) y San Felipe */
+  --cbs-red: #EB412F;
+  --cbs-red-dark: #C40000;
+  --cbs-red-hover: #8D0417;
+  --cbs-red-light: #FF5543;
+  --cbs-red-soft: #FDE8E6;
+
+  --cbs-gray-dark: #434343;
+  --cbs-gray-card: #2B2B2B;
+  --cbs-gray-medium: #707070;
+  --cbs-gray-light: #EFEFEF;
+  --cbs-gray-bg: #F8F9FA;
+  
+  --cbs-black: #111111;
+  --cbs-white: #FFFFFF;
+  
+  --cbs-gold: #FFC107;
+  --cbs-gold-dark: #D4AF37;
+  
+  --cbs-warning: #FF9800;
+  --cbs-danger: #D32F2F;
+  --cbs-success: #2E7D32;
+
+  /* Tipografías Oficiales */
+  --font-title: 'Montserrat', sans-serif;
+  --font-heading: 'Figtree', sans-serif;
+  --font-body: 'Roboto', sans-serif;
+
+  /* Sombras y Elevaciones */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+  --shadow-hover: 0 14px 28px rgba(235, 65, 47, 0.18);
+  
+  /* Transiciones */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  /* Bordes */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Layout */
+  --container-max: 1280px;
+}
