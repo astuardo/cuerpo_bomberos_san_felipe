@@ -1,9 +1,9 @@
 import { neon } from '@neondatabase/serverless';
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
 if (!DATABASE_URL) {
-  console.warn('[Security Warning] DATABASE_URL no está configurada en las variables de entorno.');
+  console.warn('[Security Warning] Ni DATABASE_URL ni POSTGRES_URL están configuradas en las variables de entorno.');
 }
 
 export default async function handler(req, res) {
