@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@neondatabase/serverless": "^0.9.3"
+    "@neondatabase/serverless": "^0.9.3",
+    "@vercel/blob": "^2.8.0"
   }
 }

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, Lock, LogOut, Plus, Trash2, Edit3, AlertTriangle, 
-  FileText, Save, ShieldAlert 
+  FileText, Save, ShieldAlert, UploadCloud, Check, Loader2, Image as ImageIcon
 } from 'lucide-react';
 import { NewsItem, EmergencyAlert, AdminUser } from '../../types';
 
@@ -44,6 +44,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [alertMessage, setAlertMessage] = useState(
     alert?.message ?? 'Condiciones propicias para incendios forestales en el Valle del Aconcagua. Ante humo llame al 132.'
   );
+
+  // Blob Image Upload State
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    // Límite de 4.5 MB (límite server upload de Vercel)
+    if (file.size > 4.5 * 1024 * 1024) {
+      setUploadError('La imagen supera el límite de 4.5 MB. Por favor comprímela o selecciona una más liviana.');
+      return;
+    }
+
+    setUploadingImage(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    try {
+      const response = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        headers: {
+          'content-type': file.type || 'image/jpeg'
+        },
+        body: file
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Error al subir la imagen a Vercel Blob.');
+      }
+
+      if (data.url) {
+        setEditingItem(prev => prev ? { ...prev, imageUrl: data.url } : null);
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 4000);
+      }
+    } catch (err: any) {
+      console.error('Error al subir imagen:', err);
+      setUploadError(err.message || 'Error al conectar con el servicio de almacenamiento.');
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Handle Login seguro contra la API
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -424,20 +475,106 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div className="admin-form-group">
-                  <label className="admin-label">Imagen de Portada (URL)</label>
+                  <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <ImageIcon size={16} /> Imagen de Portada (Vercel Blob Storage)
+                  </label>
+                  
+                  {/* Selector / Subidor de archivo desde Celular o PC */}
+                  <div style={{
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '1.25rem',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    marginBottom: '0.75rem',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      onChange={handleImageFileSelect}
+                      accept="image/jpeg, image/png, image/webp, image/gif"
+                      style={{ display: 'none' }}
+                      id="blob-file-upload-input"
+                    />
+                    
+                    {uploadingImage ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: '#0284c7' }}>
+                        <Loader2 className="animate-spin" size={28} />
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Subiendo imagen a Vercel Blob...</span>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Guardando en la nube y optimizando entrega</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <UploadCloud size={32} style={{ color: '#C40000', margin: '0 auto 0.5rem auto' }} />
+                        <p style={{ margin: '0 0 0.35rem 0', fontWeight: 600, fontSize: '0.95rem', color: '#1e293b' }}>
+                          Selecciona una foto desde tu dispositivo
+                        </p>
+                        <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.8rem', color: '#64748b' }}>
+                          Formatos JPG, PNG o WebP desde tu celular o PC (Máx. 4.5 MB)
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{
+                            background: '#C40000',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '0.55rem 1.25rem',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            boxShadow: '0 2px 4px rgba(196, 0, 0, 0.2)'
+                          }}
+                        >
+                          <UploadCloud size={16} /> Subir desde el Dispositivo
+                        </button>
+                      </div>
+                    )}
+
+                    {uploadSuccess && (
+                      <div style={{ marginTop: '0.75rem', color: '#16a34a', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', fontWeight: 600 }}>
+                        <Check size={16} /> ¡Imagen subida y enlazada exitosamente!
+                      </div>
+                    )}
+
+                    {uploadError && (
+                      <div style={{ marginTop: '0.75rem', padding: '0.6rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', color: '#dc2626', fontSize: '0.85rem', textAlign: 'left' }}>
+                        ⚠️ <strong>Atención:</strong> {uploadError}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Campo de texto alternativo para URL manual */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>O ingresa directamente una URL de imagen:</span>
+                    {editingItem.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem({ ...editingItem, imageUrl: '' })}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Quitar imagen
+                      </button>
+                    )}
+                  </div>
                   <input 
                     type="text" 
                     className="admin-input" 
                     value={editingItem.imageUrl || ''}
                     onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })}
-                    placeholder="https://..."
+                    placeholder="https://... o sube una foto arriba"
                   />
                   {editingItem.imageUrl && (
-                    <div style={{ marginTop: '0.5rem', maxHeight: '150px', overflow: 'hidden', borderRadius: '4px' }}>
+                    <div style={{ marginTop: '0.5rem', maxHeight: '180px', overflow: 'hidden', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                       <img 
                         src={editingItem.imageUrl} 
                         alt="Vista previa" 
-                        style={{ height: '150px', width: '100%', objectFit: 'cover' }}
+                        style={{ height: '180px', width: '100%', objectFit: 'cover' }}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.onerror = null;

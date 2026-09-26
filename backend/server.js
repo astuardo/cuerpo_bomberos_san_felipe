@@ -247,6 +247,29 @@ app.get('/api/stats', (req, res) => {
   res.json(db.stats || {});
 });
 
+// ================= Ruta de Subida de Archivos / Imágenes =================
+app.post('/api/upload', (req, res) => {
+  const filename = req.query.filename || `upload-${Date.now()}.jpg`;
+  const ext = path.extname(filename) || '.jpg';
+  const targetName = 'noticia-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
+  const targetPath = path.join(UPLOADS_DIR, targetName);
+
+  const fileStream = fs.createWriteStream(targetPath);
+  req.pipe(fileStream);
+
+  fileStream.on('finish', () => {
+    res.json({
+      url: `/uploads/${targetName}`,
+      pathname: targetName
+    });
+  });
+
+  fileStream.on('error', (err) => {
+    console.error('Error guardando archivo local:', err);
+    res.status(500).json({ error: 'Error al guardar archivo localmente' });
+  });
+});
+
 // Arrancar servidor
 app.listen(PORT, () => {
   console.log(`[CBSF Backend] Servidor ejecutándose en http://localhost:${PORT}`);
