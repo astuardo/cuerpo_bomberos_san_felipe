@@ -16,13 +16,26 @@ export const Footer: React.FC<FooterProps> = ({ companies, onSelectCompany, onOp
           {/* Columna 1: Identidad Institucional */}
           <div>
             <div className="footer-brand">
-              <img 
-                src="/logo-bomberos.svg" 
-                alt="Escudo Bomberos San Felipe" 
-                width="48"
-                height="48"
-                style={{ width: '48px', height: '48px', filter: 'brightness(0) invert(1)' }} 
-              />
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '50%',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '52px',
+                height: '52px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                flexShrink: 0
+              }}>
+                <img 
+                  src="/escudo_cbsf_transparente.png" 
+                  alt="Escudo Oficial Cuerpo de Bomberos San Felipe" 
+                  width="44"
+                  height="44"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                />
+              </div>
               <div>
                 <h3 style={{ color: '#FFFFFF', fontSize: '1.15rem', margin: 0, textTransform: 'uppercase' }}>
                   Cuerpo de Bomberos

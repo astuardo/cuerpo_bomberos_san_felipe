@@ -192,7 +192,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Header del Modal */}
         <div className="admin-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Lock size={20} style={{ color: 'var(--cbs-red)' }} />
+            <div style={{
+              background: '#FFFFFF',
+              borderRadius: '50%',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              flexShrink: 0
+            }}>
+              <img 
+                src="/escudo_cbsf_transparente.png" 
+                alt="CBSF" 
+                style={{ width: '26px', height: '26px', objectFit: 'contain' }} 
+              />
+            </div>
             <div>
               <h3 style={{ color: '#FFFFFF', margin: 0, fontSize: '1.15rem' }}>
                 Panel de Prensa y Comunicaciones
@@ -213,9 +229,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="admin-modal-body">
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
               <img 
-                src="/logo-bomberos.svg" 
-                alt="Logo" 
-                style={{ width: '60px', height: '60px', margin: '0 auto 0.75rem auto' }} 
+                src="/escudo_cbsf_transparente.png" 
+                alt="Escudo Oficial Cuerpo de Bomberos San Felipe" 
+                style={{ width: '75px', height: '75px', margin: '0 auto 0.75rem auto', objectFit: 'contain' }} 
               />
               <h4 style={{ margin: 0 }}>Acceso de Oficial Encargado</h4>
               <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>

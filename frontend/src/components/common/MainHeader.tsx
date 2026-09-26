@@ -35,8 +35,8 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
         {/* Logotipo y Título */}
         <div className="brand-wrap" onClick={() => handleNavClick('inicio')}>
           <img 
-            src="/logo-bomberos.svg" 
-            alt="Escudo Cuerpo de Bomberos San Felipe" 
+            src="/escudo_cbsf_transparente.png" 
+            alt="Escudo Oficial Cuerpo de Bomberos San Felipe" 
             className="brand-logo-img" 
             width="55"
             height="55"
