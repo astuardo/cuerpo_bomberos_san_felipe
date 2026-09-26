@@ -57,7 +57,7 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsItem, onCl
 
           <div style={{ marginBottom: '1.75rem', borderRadius: '8px', overflow: 'hidden', maxHeight: '420px', backgroundColor: '#222' }}>
             <img 
-              src={newsItem.imageUrl} 
+              src={newsItem.imageUrl?.includes('photo-1541888946425') ? '/placeholder-news.svg' : (newsItem.imageUrl || '/placeholder-news.svg')} 
               alt={newsItem.title} 
               width="800"
               height="420"
@@ -65,7 +65,7 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsItem, onCl
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.onerror = null;
-                target.src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1200&q=80';
+                target.src = '/placeholder-news.svg';
               }}
             />
           </div>

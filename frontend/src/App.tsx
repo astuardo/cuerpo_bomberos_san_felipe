@@ -76,7 +76,11 @@ export const App: React.FC = () => {
     // Cargar noticias
     fetchJson('/api/news').then((data) => {
       if (data && Array.isArray(data) && data.length > 0) {
-        setNews(data);
+        const sanitized = data.map((item: NewsItem) => ({
+          ...item,
+          imageUrl: item.imageUrl?.includes('photo-1541888946425') ? '/placeholder-news.svg' : (item.imageUrl || '/placeholder-news.svg')
+        }));
+        setNews(sanitized);
       }
     });
 
@@ -154,7 +158,7 @@ export const App: React.FC = () => {
         author: newsData.author || 'Prensa CBSF',
         excerpt: newsData.excerpt || '',
         content: newsData.content || '',
-        imageUrl: newsData.imageUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1200&q=80',
+        imageUrl: newsData.imageUrl || '/placeholder-news.svg',
         featured: newsData.featured || false,
         status: newsData.status || 'PUBLICADO'
       };

@@ -128,7 +128,7 @@ export const INITIAL_NEWS: NewsItem[] = [
 El Superintendente, Sr. David Guajardo Sandoval, junto al Comandante Walter Staforelli Delgado, destacaron el crecimiento técnico y humano de las 7 compañías que conforman el Cuerpo: 'Hoy somos un referente en el Valle de Aconcagua gracias al compromiso desinteresado de nuestras voluntarias y voluntarios. San Felipe cuenta con personal altamente capacitado en rescate vehicular, incendios de interfaz, operaciones subacuáticas GERSA y rescate agreste'.
 
 Durante la ceremonia se entregaron premios de constancia por 10, 20, 30 y más de 50 años de servicio, reconociendo la lealtad y el honor de quienes han dedicado sus vidas al lema de Abnegación y Sacrificio.`,
-    imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1200&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1527525443983-6e60c75fff46?auto=format&fit=crop&w=1200&q=80',
     featured: true,
     status: 'PUBLICADO'
   },

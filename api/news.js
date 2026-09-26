@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       const author = item.author || 'Prensa CBSF';
       const excerpt = item.excerpt || '';
       const content = item.content || '';
-      const imageUrl = item.imageUrl || 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1200&q=80';
+      const imageUrl = (item.imageUrl && !item.imageUrl.includes('photo-1541888946425')) ? item.imageUrl : '/placeholder-news.svg';
       const featured = item.featured === true || item.featured === 'true';
       const status = item.status || 'PUBLICADO';
 
@@ -71,6 +71,13 @@ export default async function handler(req, res) {
       });
     }
 
+    // Auto-corregir URLs rotas en la BD
+    try {
+      await sql`UPDATE news SET image_url = '/placeholder-news.svg' WHERE image_url LIKE '%photo-1541888946425%';`;
+    } catch (_) {
+      // Ignorar si la columna o permiso no aplica
+    }
+
     // GET: LISTAR NOTICIAS
     const rows = await sql`
       SELECT id, title, category, date, author, excerpt, content, image_url AS "imageUrl", featured, status
@@ -78,7 +85,12 @@ export default async function handler(req, res) {
       ORDER BY date DESC, created_at DESC;
     `;
 
-    return res.status(200).json(rows);
+    const sanitizedRows = rows.map(r => ({
+      ...r,
+      imageUrl: (r.imageUrl && !r.imageUrl.includes('photo-1541888946425')) ? r.imageUrl : '/placeholder-news.svg'
+    }));
+
+    return res.status(200).json(sanitizedRows);
   } catch (error) {
     console.error('Error en /api/news con Neon:', error);
     return res.status(500).json({ error: 'Error al conectar con la base de datos' });

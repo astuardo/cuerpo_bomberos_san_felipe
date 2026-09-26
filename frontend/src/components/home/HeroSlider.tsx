@@ -12,7 +12,7 @@ const SLIDES = [
     tag: 'DESDE EL 11 DE MARZO DE 1883',
     title: 'CONSTANCIA Y DISCIPLINA AL SERVICIO DEL VALLE DE ACONCAGUA',
     subtitle: 'Más de 141 años protegiendo vidas y bienes en San Felipe, Curimón, Panquehue y sectores rurales con vocación 100% voluntaria.',
-    bgImage: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1920&q=85',
+    bgImage: 'https://images.unsplash.com/photo-1527525443983-6e60c75fff46?auto=format&fit=crop&w=1920&q=85',
     ctaPrimary: 'Conoce las 7 Compañías',
     action: 'companias'
   },

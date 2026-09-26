@@ -69,7 +69,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({
               <article key={item.id} className="news-card">
                 <div className="news-card-img-wrap" onClick={() => onSelectNews(item)} style={{ cursor: 'pointer' }}>
                   <img
-                    src={item.imageUrl}
+                    src={item.imageUrl?.includes('photo-1541888946425') ? '/placeholder-news.svg' : (item.imageUrl || '/placeholder-news.svg')}
                     alt={item.title}
                     className="news-card-img"
                     width="600"
@@ -78,7 +78,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.onerror = null;
-                      target.src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=800&q=80';
+                      target.src = '/placeholder-news.svg';
                     }}
                   />
                   <span className="news-card-badge">{item.category}</span>

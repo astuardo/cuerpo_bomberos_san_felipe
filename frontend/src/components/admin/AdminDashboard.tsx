@@ -138,7 +138,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         author: currentUser?.name || 'Prensa CBSF',
         excerpt: '',
         content: '',
-        imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=1200&q=80',
+        imageUrl: '/placeholder-news.svg',
         featured: false,
         status: 'PUBLICADO'
       });
@@ -578,7 +578,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.onerror = null;
-                          target.src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=800&q=80';
+                          target.src = '/placeholder-news.svg';
                         }}
                       />
                     </div>
