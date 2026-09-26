@@ -45,14 +45,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     alert?.message ?? 'Condiciones propicias para incendios forestales en el Valle del Aconcagua. Ante humo llame al 132.'
   );
 
-  // Handle Login
+  // Handle Login seguro contra la API
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setLoginError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: loginUsername, password: loginPassword })
@@ -67,27 +67,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           token: data.token
         });
       } else {
-        // Fallback local si el backend no responde
-        if (loginUsername === 'admin' && loginPassword === 'bomberosanfelipe2026') {
-          onLogin({
-            username: 'admin',
-            name: 'Encargado de Comunicaciones y Prensa',
-            role: 'Oficial de RRPP'
-          });
-        } else {
-          setLoginError(data.message || 'Credenciales incorrectas');
-        }
+        setLoginError(data.message || 'Credenciales inválidas. Compruebe usuario y contraseña.');
       }
     } catch {
-      if (loginUsername === 'admin' && loginPassword === 'bomberosanfelipe2026') {
-        onLogin({
-          username: 'admin',
-          name: 'Encargado de Comunicaciones y Prensa',
-          role: 'Oficial de RRPP'
-        });
-      } else {
-        setLoginError('Error de conexión o credenciales incorrectas');
-      }
+      setLoginError('Error de conexión con el servidor de autenticación.');
     } finally {
       setIsSubmitting(false);
     }
