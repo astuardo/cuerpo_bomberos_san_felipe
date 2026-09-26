@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PhoneCall } from 'lucide-react';
 import { Topbar } from './components/common/Topbar';
 import { MainHeader } from './components/common/MainHeader';
 import { EmergencyTicker } from './components/common/EmergencyTicker';
@@ -260,6 +261,12 @@ export const App: React.FC = () => {
         onSelectCompany={(comp) => setSelectedCompany(comp)}
         onOpenCooperar={() => setCooperarOpen(true)}
       />
+
+      {/* 13. Botón Flotante Móvil de Emergencia (132) */}
+      <a href="tel:132" className="mobile-fab-emergency" title="Llamar a Emergencias 132">
+        <PhoneCall size={18} />
+        <span>132</span>
+      </a>
 
       {/* Modales Interactivos */}
       <CompanyModal 

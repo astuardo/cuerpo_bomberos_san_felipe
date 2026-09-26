@@ -49,8 +49,14 @@ export const CompaniesSection: React.FC<CompaniesSectionProps> = ({
               </div>
 
               <div className="company-meta-item">
-                <Phone size={15} style={{ color: comp.color, flexShrink: 0, marginTop: '2px' }} />
-                <span>{comp.phone}</span>
+                <a 
+                  href={`tel:${comp.phone.replace(/[^0-9]/g, '')}`} 
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4B5563' }}
+                  title={`Llamar a ${comp.shortName}`}
+                >
+                  <Phone size={15} style={{ color: comp.color, flexShrink: 0 }} />
+                  <span>{comp.phone}</span>
+                </a>
               </div>
 
               <div className="company-meta-item">

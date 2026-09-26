@@ -11,10 +11,10 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenCooperar, onNavigateSectio
     <div className="topbar">
       <div className="container topbar-content">
         <div className="topbar-left">
-          <div className="topbar-emergency-pill">
+          <a href="tel:132" className="topbar-emergency-pill" title="Llamar a Bomberos 132">
             <Phone size={14} />
             <span>EMERGENCIAS: 132</span>
-          </div>
+          </a>
           <ul className="topbar-links">
             <li>
               <button 

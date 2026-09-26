@@ -1085,7 +1085,35 @@
 }
 
 /* ============================================================
-   RESPONSIVIDAD Y MEDIA QUERIES
+   BOTÓN FLOTANTE MÓVIL 132 (Llamada de Emergencia Rápida)
+   ============================================================ */
+.mobile-fab-emergency {
+  display: none;
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 1500;
+  background: linear-gradient(135deg, #EB412F 0%, #B71C1C 100%);
+  color: #FFFFFF;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-full);
+  box-shadow: 0 8px 20px rgba(235, 65, 47, 0.45);
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  align-items: center;
+  gap: 0.5rem;
+  animation: pulseFab 2.5s infinite;
+}
+
+@keyframes pulseFab {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 20px rgba(235, 65, 47, 0.45); }
+  50% { transform: scale(1.05); box-shadow: 0 12px 25px rgba(235, 65, 47, 0.65); }
+}
+
+/* ============================================================
+   RESPONSIVIDAD Y MEDIA QUERIES (DESKTOP VS MOBILE REFINADO)
    ============================================================ */
 @media (max-width: 1024px) {
   .specialties-grid {
@@ -1100,23 +1128,52 @@
 }
 
 @media (max-width: 768px) {
+  .mobile-fab-emergency {
+    display: inline-flex;
+  }
   .nav-desktop {
     display: none;
   }
   .mobile-menu-toggle {
     display: block;
+    background: none;
+    border: none;
+    cursor: pointer;
   }
   .topbar-links {
     display: none;
   }
+  .topbar-content {
+    justify-content: space-between;
+  }
+  .topbar-emergency-pill {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.55rem;
+  }
+  .btn-cooperar {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.78rem;
+  }
   .news-grid {
     grid-template-columns: 1fr;
   }
+  
+  /* Stats Bar: 2 cols + 5to elemento full width */
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
   }
+  .stat-card:nth-child(5) {
+    grid-column: span 2;
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 1.25rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
   .specialties-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
   }
   .footer-grid {
     grid-template-columns: 1fr;
@@ -1126,10 +1183,79 @@
     flex-direction: column;
     text-align: center;
   }
+  .coopera-content .btn-cooperar, .coopera-content .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Hero Slider en Celular */
   .hero-slider {
-    height: 440px;
+    height: auto;
+    min-height: 460px;
+    padding: 4rem 0 3.5rem 0;
+  }
+  .hero-slide {
+    position: absolute;
+    height: 100%;
   }
   .hero-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    line-height: 1.25;
+  }
+  .hero-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+  }
+  .hero-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+  }
+  .hero-buttons button {
+    width: 100%;
+    justify-content: center;
+  }
+  /* Ocultar flechas laterales en móvil para no tapar texto */
+  .hero-arrow {
+    display: none !important;
+  }
+
+  /* Filtros de noticias con scroll horizontal en móvil */
+  .news-filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 0.75rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .news-filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab-btn {
+    white-space: nowrap;
+    font-size: 0.8rem;
+    padding: 0.45rem 1rem;
+    flex-shrink: 0;
+  }
+
+  /* Mapa responsive para evitar atrapamiento de scroll */
+  .map-frame-wrap {
+    height: 280px;
+  }
+  .map-container {
+    padding: 1rem;
+  }
+
+  /* Modales responsive */
+  .admin-modal-container {
+    max-height: 94vh;
+    border-radius: var(--radius-md);
+  }
+  .admin-modal-header {
+    padding: 1rem 1.25rem;
+  }
+  .admin-modal-body {
+    padding: 1.25rem;
   }
 }
