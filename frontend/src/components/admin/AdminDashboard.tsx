@@ -2,15 +2,19 @@ import React, { useState, useRef } from 'react';
 import { 
   X, Lock, LogOut, Plus, Trash2, Edit3, AlertTriangle, 
   FileText, Save, ShieldAlert, UploadCloud, Check, Loader2, Image as ImageIcon,
-  Sliders, ArrowUp, ArrowDown
+  Sliders, ArrowUp, ArrowDown, Building2, Landmark, BarChart3, Users, MapPin
 } from 'lucide-react';
-import { NewsItem, EmergencyAlert, AdminUser, HeroSlide } from '../../types';
+import { NewsItem, EmergencyAlert, AdminUser, HeroSlide, Company, InstitutionData, StatsData } from '../../types';
+import { INITIAL_INSTITUTION, INITIAL_STATS } from '../../data/initialData';
 
 interface AdminDashboardProps {
   onClose: () => void;
   news: NewsItem[];
   alert: EmergencyAlert | null;
   slides?: HeroSlide[];
+  companies?: Company[];
+  institution?: InstitutionData;
+  stats?: StatsData;
   currentUser: AdminUser | null;
   onLogin: (user: AdminUser) => void;
   onLogout: () => void;
@@ -20,6 +24,9 @@ interface AdminDashboardProps {
   onSaveSlide?: (slideData: HeroSlide) => Promise<void>;
   onDeleteSlide?: (id: string) => Promise<void>;
   onReorderSlides?: (slides: HeroSlide[]) => Promise<void>;
+  onSaveCompany?: (company: Company) => Promise<void>;
+  onSaveInstitution?: (data: InstitutionData) => Promise<void>;
+  onSaveStats?: (stats: StatsData) => Promise<void>;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -27,6 +34,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   news,
   alert,
   slides = [],
+  companies = [],
+  institution = INITIAL_INSTITUTION,
+  stats = INITIAL_STATS,
   currentUser,
   onLogin,
   onLogout,
@@ -35,7 +45,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateAlert,
   onSaveSlide,
   onDeleteSlide,
-  onReorderSlides
+  onReorderSlides,
+  onSaveCompany,
+  onSaveInstitution,
+  onSaveStats
 }) => {
   // Login State
   const [loginUsername, setLoginUsername] = useState('admin');
@@ -43,10 +56,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [loginError, setLoginError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Tabs: 'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide'
-  const [activeTab, setActiveTab] = useState<'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide'>('news');
+  // Tabs: 'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide' | 'companies' | 'edit-company' | 'institution' | 'stats'
+  const [activeTab, setActiveTab] = useState<
+    'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide' | 'companies' | 'edit-company' | 'institution' | 'stats'
+  >('news');
   const [editingItem, setEditingItem] = useState<Partial<NewsItem> | null>(null);
   const [editingSlide, setEditingSlide] = useState<Partial<HeroSlide> | null>(null);
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [companyUnitsInput, setCompanyUnitsInput] = useState<string>('');
+  
+  // State for Institution & Stats
+  const [instForm, setInstForm] = useState<InstitutionData>(institution);
+  const [statsForm, setStatsForm] = useState<StatsData>(stats);
+
   const slideFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingSlideImg, setUploadingSlideImg] = useState(false);
 
@@ -289,6 +311,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     await onReorderSlides(reordered);
   };
 
+  // Manejo de Compañías
+  const handleOpenCompanyEditor = (comp: Company) => {
+    setEditingCompany({ ...comp });
+    setCompanyUnitsInput((comp.units || []).join('\n'));
+    setActiveTab('edit-company');
+  };
+
+  const handleCompanySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCompany) return;
+    setIsSubmitting(true);
+    try {
+      const unitsArray = companyUnitsInput
+        .split('\n')
+        .map(u => u.trim())
+        .filter(Boolean);
+      
+      const payload: Company = {
+        ...editingCompany,
+        units: unitsArray
+      };
+      
+      if (onSaveCompany) {
+        await onSaveCompany(payload);
+      }
+      setActiveTab('companies');
+      setEditingCompany(null);
+    } catch (err) {
+      console.error(err);
+      window.alert('Error al guardar datos de la compañía.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Manejo de Institución
+  const handleInstitutionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (onSaveInstitution) {
+        await onSaveInstitution(instForm);
+      }
+      window.alert('Directorio y datos institucionales guardados correctamente.');
+    } catch (err) {
+      console.error(err);
+      window.alert('Error al guardar datos institucionales.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Manejo de Estadísticas
+  const handleStatsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (onSaveStats) {
+        await onSaveStats(statsForm);
+      }
+      window.alert('Estadísticas institucionales actualizadas en portada.');
+    } catch (err) {
+      console.error(err);
+      window.alert('Error al guardar estadísticas.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="admin-modal-backdrop" onClick={onClose}>
       <div 
@@ -440,10 +531,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Pestañas de gestión */}
-            <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid #E5E7EB', marginBottom: '1.5rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              gap: '0.5rem', 
+              borderBottom: '2px solid #E5E7EB', 
+              marginBottom: '1.5rem',
+              overflowX: 'auto',
+              paddingBottom: '4px'
+            }}>
               <button
                 className={`tab-btn ${activeTab === 'news' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('news'); setEditingItem(null); }}
+                onClick={() => { setActiveTab('news'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
               >
                 <FileText size={16} style={{ display: 'inline', marginRight: '6px' }} />
                 Noticias ({news.length})
@@ -451,7 +549,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <button
                 className={`tab-btn ${activeTab === 'alert' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('alert'); setEditingItem(null); setEditingSlide(null); }}
+                onClick={() => { setActiveTab('alert'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
               >
                 <AlertTriangle size={16} style={{ display: 'inline', marginRight: '6px' }} />
                 Alerta en Portada
@@ -459,10 +557,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <button
                 className={`tab-btn ${activeTab === 'slides' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('slides'); setEditingItem(null); setEditingSlide(null); }}
+                onClick={() => { setActiveTab('slides'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
               >
                 <Sliders size={16} style={{ display: 'inline', marginRight: '6px' }} />
                 Slider Portada ({slides.length})
+              </button>
+
+              <button
+                className={`tab-btn ${activeTab === 'companies' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('companies'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+              >
+                <Building2 size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                Compañías ({companies.length})
+              </button>
+
+              <button
+                className={`tab-btn ${activeTab === 'institution' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('institution'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+              >
+                <Landmark size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                Institución & Mando
+              </button>
+
+              <button
+                className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('stats'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+              >
+                <BarChart3 size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                Estadísticas
               </button>
 
               {activeTab === 'edit-news' && (
@@ -476,6 +598,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button className="tab-btn active">
                   <Edit3 size={16} style={{ display: 'inline', marginRight: '6px' }} />
                   {editingSlide?.id && slides.some(s => s.id === editingSlide.id) ? 'Editar Diapositiva' : 'Nueva Diapositiva'}
+                </button>
+              )}
+
+              {activeTab === 'edit-company' && (
+                <button className="tab-btn active">
+                  <Edit3 size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  {editingCompany ? `Editar Cía. Nº ${editingCompany.number}` : 'Editar Compañía'}
                 </button>
               )}
             </div>
@@ -1139,6 +1268,636 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     Cancelar
                   </button>
                 </div>
+              </form>
+            )}
+
+            {/* Tab 4: Lista de Compañías */}
+            {activeTab === 'companies' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <div>
+                    <h4 style={{ margin: 0 }}>Compañías del Cuerpo de Bomberos de San Felipe</h4>
+                    <span style={{ fontSize: '0.82rem', color: '#666' }}>
+                      Seleccione una compañía para modificar sus cuarteles, oficiales, especialidad o material mayor.
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>N°</th>
+                        <th>Nombre de Compañía</th>
+                        <th>Especialidad</th>
+                        <th>Oficiales a Cargo</th>
+                        <th>Cuartel / Teléfono</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {companies.map((comp) => (
+                        <tr key={comp.id}>
+                          <td>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              backgroundColor: comp.color || 'var(--cbs-red)',
+                              color: '#FFFFFF',
+                              fontWeight: 800,
+                              fontSize: '0.85rem'
+                            }}>
+                              {comp.number}
+                            </span>
+                          </td>
+                          <td>
+                            <strong style={{ color: '#111', display: 'block' }}>{comp.name}</strong>
+                            <span style={{ fontSize: '0.78rem', color: '#666', fontStyle: 'italic' }}>
+                              "{comp.motto}"
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '0.2rem 0.6rem',
+                              borderRadius: '4px',
+                              backgroundColor: '#F1F5F9',
+                              color: '#334155',
+                              fontSize: '0.78rem',
+                              fontWeight: 600
+                            }}>
+                              {comp.specialty}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.82rem' }}>
+                            <div><strong>Cap:</strong> {comp.captain || 'Por asignar'}</div>
+                            <div><strong>Dir:</strong> {comp.director || 'Por asignar'}</div>
+                          </td>
+                          <td style={{ fontSize: '0.82rem', color: '#475569' }}>
+                            <div>{comp.address}</div>
+                            <div style={{ color: 'var(--cbs-red)', fontWeight: 600 }}>{comp.phone}</div>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCompanyEditor(comp)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: '#F8F9FA',
+                                border: '1px solid #CBD5E1',
+                                padding: '0.35rem 0.75rem',
+                                borderRadius: '6px',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                color: '#1E293B',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Edit3 size={14} />
+                              <span>Editar</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 5: Editor de Compañía */}
+            {activeTab === 'edit-company' && editingCompany && (
+              <form onSubmit={handleCompanySubmit}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.75rem', 
+                  marginBottom: '1.25rem',
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: '8px',
+                  borderLeft: `5px solid ${editingCompany.color || 'var(--cbs-red)'}`
+                }}>
+                  <span style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    backgroundColor: editingCompany.color || 'var(--cbs-red)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800
+                  }}>
+                    {editingCompany.number}
+                  </span>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#0F172A' }}>
+                      Modificar: {editingCompany.name}
+                    </h4>
+                    <span style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                      Fundada el {editingCompany.foundingDate}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                  <div className="admin-form-group">
+                    <label className="admin-label">Nombre Oficial de la Compañía</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingCompany.name}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Nombre Corto / Sigla</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingCompany.shortName}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, shortName: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                  <div className="admin-form-group">
+                    <label className="admin-label">Lema Institucional</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingCompany.motto}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, motto: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Fecha de Fundación</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingCompany.foundingDate}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, foundingDate: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Color Distintivo</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input 
+                        type="color" 
+                        value={editingCompany.color}
+                        onChange={(e) => setEditingCompany({ ...editingCompany, color: e.target.value })}
+                        style={{ width: '42px', height: '38px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      />
+                      <input 
+                        type="text" 
+                        className="admin-input"
+                        value={editingCompany.color}
+                        onChange={(e) => setEditingCompany({ ...editingCompany, color: e.target.value })}
+                        style={{ width: '110px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                  <div className="admin-form-group">
+                    <label className="admin-label">Especialidad Operativa</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingCompany.specialty}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, specialty: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Teléfono de Contacto</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingCompany.phone}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                  <div className="admin-form-group">
+                    <label className="admin-label">Capitán a Cargo</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingCompany.captain}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, captain: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Director de Compañía</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingCompany.director}
+                      onChange={(e) => setEditingCompany({ ...editingCompany, director: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Dirección del Cuartel</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="admin-input" 
+                    value={editingCompany.address}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, address: e.target.value })}
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Descripción e Historia de la Compañía</label>
+                  <textarea 
+                    rows={4}
+                    required
+                    className="admin-textarea" 
+                    value={editingCompany.description}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, description: e.target.value })}
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">
+                    Material Mayor y Unidades Asignadas (Una unidad por línea)
+                  </label>
+                  <textarea 
+                    rows={3}
+                    className="admin-textarea" 
+                    value={companyUnitsInput}
+                    onChange={(e) => setCompanyUnitsInput(e.target.value)}
+                    placeholder="B-1 (Bomba Urbana Pesada)&#10;Q-1 (Unidad de Escala)&#10;Z-1 (Cisterna)"
+                  />
+                  <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                    Cada línea representa un carro o unidad operativa de la compañía.
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                  <button 
+                    type="submit" 
+                    className="btn-primary"
+                    disabled={isSubmitting}
+                  >
+                    <Save size={16} />
+                    <span>{isSubmitting ? 'Guardando...' : 'Guardar Datos de Compañía'}</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-outline"
+                    onClick={() => { setActiveTab('companies'); setEditingCompany(null); }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Tab 6: Institución y Directorio General */}
+            {activeTab === 'institution' && (
+              <form onSubmit={handleInstitutionSubmit}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: 0 }}>Directorio General e Información Institucional</h4>
+                  <span style={{ fontSize: '0.82rem', color: '#666' }}>
+                    Modifique los nombres de los mandos, la reseña histórica de fundación y los teléfonos de la sede central.
+                  </span>
+                </div>
+
+                {/* Mando Administrativo */}
+                <div style={{ 
+                  background: '#F8FAFC', 
+                  border: '1px solid #E2E8F0', 
+                  borderLeft: '4px solid var(--cbs-red)', 
+                  borderRadius: '8px', 
+                  padding: '1.25rem', 
+                  marginBottom: '1.5rem' 
+                }}>
+                  <h5 style={{ margin: '0 0 1rem 0', color: 'var(--cbs-red)', textTransform: 'uppercase', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Users size={16} />
+                    Mando Administrativo (Superintendencia)
+                  </h5>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                    <div className="admin-form-group">
+                      <label className="admin-label">Nombre del Superintendente</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="admin-input" 
+                        value={instForm.superintendentName}
+                        onChange={(e) => setInstForm({ ...instForm, superintendentName: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-label">Cargo Oficial</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="admin-input" 
+                        value={instForm.superintendentRole}
+                        onChange={(e) => setInstForm({ ...instForm, superintendentRole: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group" style={{ margin: 0 }}>
+                    <label className="admin-label">Descripción / Atribución</label>
+                    <textarea 
+                      rows={2}
+                      className="admin-textarea" 
+                      value={instForm.superintendentBio}
+                      onChange={(e) => setInstForm({ ...instForm, superintendentBio: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Mando Operativo */}
+                <div style={{ 
+                  background: '#F8FAFC', 
+                  border: '1px solid #E2E8F0', 
+                  borderLeft: '4px solid #1E293B', 
+                  borderRadius: '8px', 
+                  padding: '1.25rem', 
+                  marginBottom: '1.5rem' 
+                }}>
+                  <h5 style={{ margin: '0 0 1rem 0', color: '#1E293B', textTransform: 'uppercase', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldAlert size={16} />
+                    Mando Operativo Activo (Comandancia)
+                  </h5>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                    <div className="admin-form-group">
+                      <label className="admin-label">Nombre del Comandante</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="admin-input" 
+                        value={instForm.commanderName}
+                        onChange={(e) => setInstForm({ ...instForm, commanderName: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-label">Cargo Oficial</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="admin-input" 
+                        value={instForm.commanderRole}
+                        onChange={(e) => setInstForm({ ...instForm, commanderRole: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group" style={{ margin: 0 }}>
+                    <label className="admin-label">Descripción / Atribución</label>
+                    <textarea 
+                      rows={2}
+                      className="admin-textarea" 
+                      value={instForm.commanderBio}
+                      onChange={(e) => setInstForm({ ...instForm, commanderBio: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Reseña Histórica */}
+                <div style={{ 
+                  background: '#F8FAFC', 
+                  border: '1px solid #E2E8F0', 
+                  borderRadius: '8px', 
+                  padding: '1.25rem', 
+                  marginBottom: '1.5rem' 
+                }}>
+                  <h5 style={{ margin: '0 0 1rem 0', color: '#334155', textTransform: 'uppercase', fontSize: '0.9rem' }}>
+                    Reseña Histórica Oficial
+                  </h5>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Párrafo 1 (Fundación e Historia Temprana)</label>
+                    <textarea 
+                      rows={3}
+                      required
+                      className="admin-textarea" 
+                      value={instForm.historyParagraph1}
+                      onChange={(e) => setInstForm({ ...instForm, historyParagraph1: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group" style={{ margin: 0 }}>
+                    <label className="admin-label">Párrafo 2 (Expansión, Compañías y Especialidades)</label>
+                    <textarea 
+                      rows={3}
+                      className="admin-textarea" 
+                      value={instForm.historyParagraph2}
+                      onChange={(e) => setInstForm({ ...instForm, historyParagraph2: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Sede Cuartel General */}
+                <div style={{ 
+                  background: '#F8FAFC', 
+                  border: '1px solid #E2E8F0', 
+                  borderRadius: '8px', 
+                  padding: '1.25rem', 
+                  marginBottom: '1.5rem' 
+                }}>
+                  <h5 style={{ margin: '0 0 1rem 0', color: '#334155', textTransform: 'uppercase', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MapPin size={16} />
+                    Sede Cuartel General y Central de Alarmas
+                  </h5>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Dirección Sede Cuartel General</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={instForm.headquartersAddress}
+                      onChange={(e) => setInstForm({ ...instForm, headquartersAddress: e.target.value })}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                    <div className="admin-form-group">
+                      <label className="admin-label">Teléfono Central Telefónica</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="admin-input" 
+                        value={instForm.headquartersPhone}
+                        onChange={(e) => setInstForm({ ...instForm, headquartersPhone: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-label">Línea de Emergencias</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="admin-input" 
+                        value={instForm.headquartersEmergency}
+                        onChange={(e) => setInstForm({ ...instForm, headquartersEmergency: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  disabled={isSubmitting}
+                >
+                  <Save size={16} />
+                  <span>{isSubmitting ? 'Guardando...' : 'Guardar Información Institucional'}</span>
+                </button>
+              </form>
+            )}
+
+            {/* Tab 7: Estadísticas y Cifras de Portada */}
+            {activeTab === 'stats' && (
+              <form onSubmit={handleStatsSubmit}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: 0 }}>Cifras de Impacto y Estadísticas</h4>
+                  <span style={{ fontSize: '0.82rem', color: '#666' }}>
+                    Estos indicadores numéricos se reflejan directamente en la barra destacada de la portada principal.
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div className="admin-form-group">
+                    <label className="admin-label">Total de Compañías</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      required
+                      className="admin-input" 
+                      value={statsForm.companies}
+                      onChange={(e) => setStatsForm({ ...statsForm, companies: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Bomberos Voluntarios</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      required
+                      className="admin-input" 
+                      value={statsForm.firefighters}
+                      onChange={(e) => setStatsForm({ ...statsForm, firefighters: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Años de Historia</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      required
+                      className="admin-input" 
+                      value={statsForm.yearsOfHistory}
+                      onChange={(e) => setStatsForm({ ...statsForm, yearsOfHistory: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Emergencias Anuales Atendidas</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      required
+                      className="admin-input" 
+                      value={statsForm.annualEmergencies}
+                      onChange={(e) => setStatsForm({ ...statsForm, annualEmergencies: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">% Voluntariado</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      max="100"
+                      required
+                      className="admin-input" 
+                      value={statsForm.volunteerPercentage}
+                      onChange={(e) => setStatsForm({ ...statsForm, volunteerPercentage: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+
+                {/* Previsualización en vivo */}
+                <div style={{
+                  background: '#0F172A',
+                  color: '#FFFFFF',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#94A3B8', marginBottom: '0.75rem', fontWeight: 700 }}>
+                    Vista Previa de la Barra de Estadísticas
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', textAlign: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--cbs-red)' }}>{statsForm.companies}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Compañías Activas</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--cbs-red)' }}>{statsForm.firefighters}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Bomberos Voluntarios</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--cbs-red)' }}>{statsForm.yearsOfHistory}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Años de Historia</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--cbs-red)' }}>+{statsForm.annualEmergencies}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Emergencias Anuales</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--cbs-red)' }}>{statsForm.volunteerPercentage}%</div>
+                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Vocación Voluntaria</div>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  disabled={isSubmitting}
+                >
+                  <Save size={16} />
+                  <span>{isSubmitting ? 'Guardando...' : 'Actualizar Estadísticas en Portada'}</span>
+                </button>
               </form>
             )}
           </div>

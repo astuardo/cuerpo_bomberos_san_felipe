@@ -1,10 +1,13 @@
 import { X, Users, BookOpen, MapPin } from 'lucide-react';
+import { InstitutionData } from '../../types';
+import { INITIAL_INSTITUTION } from '../../data/initialData';
 
 interface InstitutionModalProps {
   onClose: () => void;
+  data?: InstitutionData;
 }
 
-export const InstitutionModal: React.FC<InstitutionModalProps> = ({ onClose }) => {
+export const InstitutionModal: React.FC<InstitutionModalProps> = ({ onClose, data = INITIAL_INSTITUTION }) => {
   return (
     <div className="admin-modal-backdrop" onClick={onClose}>
       <div 
@@ -53,19 +56,19 @@ export const InstitutionModal: React.FC<InstitutionModalProps> = ({ onClose }) =
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
               <div style={{ background: '#F8F9FA', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid var(--cbs-red)' }}>
                 <span style={{ fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', fontWeight: 800 }}>Mando Administrativo</span>
-                <h5 style={{ fontSize: '1.15rem', margin: '4px 0', color: '#111' }}>David Nehemia Guajardo Sandoval</h5>
-                <strong style={{ color: 'var(--cbs-red)', fontSize: '0.9rem' }}>Superintendente</strong>
+                <h5 style={{ fontSize: '1.15rem', margin: '4px 0', color: '#111' }}>{data.superintendentName}</h5>
+                <strong style={{ color: 'var(--cbs-red)', fontSize: '0.9rem' }}>{data.superintendentRole}</strong>
                 <p style={{ fontSize: '0.82rem', color: '#666', margin: '6px 0 0 0' }}>
-                  Representante legal y máxima autoridad directiva del Cuerpo de Bomberos de San Felipe.
+                  {data.superintendentBio}
                 </p>
               </div>
 
               <div style={{ background: '#F8F9FA', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #111' }}>
                 <span style={{ fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', fontWeight: 800 }}>Mando Activo Operativo</span>
-                <h5 style={{ fontSize: '1.15rem', margin: '4px 0', color: '#111' }}>Walter Román Staforelli Delgado</h5>
-                <strong style={{ color: '#111', fontSize: '0.9rem' }}>Comandante</strong>
+                <h5 style={{ fontSize: '1.15rem', margin: '4px 0', color: '#111' }}>{data.commanderName}</h5>
+                <strong style={{ color: '#111', fontSize: '0.9rem' }}>{data.commanderRole}</strong>
                 <p style={{ fontSize: '0.82rem', color: '#666', margin: '6px 0 0 0' }}>
-                  Jefe de las operaciones activas, despacho de unidades y disciplina de las 7 compañías.
+                  {data.commanderBio}
                 </p>
               </div>
             </div>
@@ -91,11 +94,13 @@ export const InstitutionModal: React.FC<InstitutionModalProps> = ({ onClose }) =
               </div>
               <div style={{ flex: '1', minWidth: '260px' }}>
                 <p style={{ fontSize: '0.95rem', lineHeight: 1.7, color: '#333', marginTop: 0 }}>
-                  El <strong>Cuerpo de Bomberos de San Felipe</strong> fue fundado el <strong>11 de marzo de 1883</strong> gracias al liderazgo del ciudadano y abogado don Moisés del Fierro y Arcaya, junto a vecinos progresistas que sintieron la imperiosa necesidad de dotar a la ciudad de una entidad organizada y voluntaria para proteger a las familias del Valle de Aconcagua.
+                  {data.historyParagraph1}
                 </p>
-                <p style={{ fontSize: '0.95rem', lineHeight: 1.7, color: '#333' }}>
-                  A lo largo de las décadas, la institución se expandió desde su primera bomba hasta consolidar una fuerza de <strong>7 compañías</strong>, abarcando no solo la comuna de San Felipe, sino también Curimón, El Almendral y la vecina comuna de Panquehue, incorporando unidades especializadas en rescate subacuático (GERSA) y rescate agreste cordillerano.
-                </p>
+                {data.historyParagraph2 && (
+                  <p style={{ fontSize: '0.95rem', lineHeight: 1.7, color: '#333' }}>
+                    {data.historyParagraph2}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -107,10 +112,10 @@ export const InstitutionModal: React.FC<InstitutionModalProps> = ({ onClose }) =
               Sede Cuartel General
             </h4>
             <p style={{ margin: '0 0 4px 0', fontSize: '0.9rem' }}>
-              Calle Merced N° 832, San Felipe, Región de Valparaíso, Chile.
+              {data.headquartersAddress}
             </p>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#555' }}>
-              Teléfono Central: (34) 251 8817 · Central de Alarmas: 132
+              Teléfono Central: {data.headquartersPhone} · Central de Alarmas: {data.headquartersEmergency}
             </p>
           </div>
         </div>

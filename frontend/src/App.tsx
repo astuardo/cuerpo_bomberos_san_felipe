@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PhoneCall } from 'lucide-react';
+import { PhoneCall, AlertTriangle, X } from 'lucide-react';
 import { Topbar } from './components/common/Topbar';
 import { MainHeader } from './components/common/MainHeader';
 import { EmergencyTicker } from './components/common/EmergencyTicker';
@@ -26,46 +26,38 @@ import {
   INITIAL_NEWS, 
   INITIAL_STATS, 
   INITIAL_ALERT,
-  INITIAL_SLIDES 
+  INITIAL_SLIDES,
+  INITIAL_INSTITUTION
 } from './data/initialData';
-import { Company, NewsItem, EmergencyAlert, StatsData, AdminUser, HeroSlide } from './types';
+import { Company, NewsItem, EmergencyAlert, StatsData, AdminUser, HeroSlide, InstitutionData } from './types';
 
 export const App: React.FC = () => {
-  // Datos principales con persistencia en localStorage para Vercel
-  const [companies, setCompanies] = useState<Company[]>(() => {
-    const saved = localStorage.getItem('cbsf_companies');
-    return saved ? JSON.parse(saved) : INITIAL_COMPANIES;
-  });
-
-  const [news, setNews] = useState<NewsItem[]>(() => {
-    const saved = localStorage.getItem('cbsf_news');
-    return saved ? JSON.parse(saved) : INITIAL_NEWS;
-  });
-
-  const [alert, setAlert] = useState<EmergencyAlert | null>(() => {
-    const saved = localStorage.getItem('cbsf_alert');
-    return saved ? JSON.parse(saved) : INITIAL_ALERT;
-  });
-
-  const [slides, setSlides] = useState<HeroSlide[]>(() => {
-    const saved = localStorage.getItem('cbsf_slides');
-    return saved ? JSON.parse(saved) : INITIAL_SLIDES;
-  });
-
+  // Datos principales cargados desde la base de datos (PostgreSQL / Backend)
+  const [companies, setCompanies] = useState<Company[]>(INITIAL_COMPANIES);
+  const [news, setNews] = useState<NewsItem[]>(INITIAL_NEWS);
+  const [alert, setAlert] = useState<EmergencyAlert | null>(INITIAL_ALERT);
+  const [slides, setSlides] = useState<HeroSlide[]>(INITIAL_SLIDES);
   const [stats, setStats] = useState<StatsData>(INITIAL_STATS);
+  const [institution, setInstitution] = useState<InstitutionData>(INITIAL_INSTITUTION);
 
   // Estados de Modales
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [institutionOpen, setInstitutionOpen] = useState(false);
   const [cooperarOpen, setCooperarOpen] = useState(false);
+  const [alertModalOpen, setAlertModalOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
 
   // Estado del Administrador / Encargado de Prensa
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
 
-  // Fetch de datos desde el backend/API al cargar
+  // Fetch de datos desde la base de datos al cargar
   useEffect(() => {
+    // Limpieza de claves previas de localStorage para garantizar lectura 100% desde BD
+    ['cbsf_companies', 'cbsf_news', 'cbsf_alert', 'cbsf_slides', 'cbsf_stats', 'cbsf_institution'].forEach(k => {
+      try { localStorage.removeItem(k); } catch (_) {}
+    });
+
     const fetchJson = async (url: string) => {
       try {
         const res = await fetch(url);
@@ -118,6 +110,13 @@ export const App: React.FC = () => {
       }
     });
 
+    // Cargar información institucional y mando
+    fetchJson('/api/institution').then((data) => {
+      if (data && data.superintendentName) {
+        setInstitution(data);
+      }
+    });
+
     // Refrescar al volver a la app o pestaña
     const handleSync = () => {
       if (document.visibilityState === 'visible') {
@@ -134,6 +133,21 @@ export const App: React.FC = () => {
         fetchJson('/api/slides').then((data) => {
           if (data && Array.isArray(data) && data.length > 0) {
             setSlides(data);
+          }
+        });
+        fetchJson('/api/companies').then((data) => {
+          if (data && Array.isArray(data) && data.length > 0) {
+            setCompanies(data);
+          }
+        });
+        fetchJson('/api/institution').then((data) => {
+          if (data && data.superintendentName) {
+            setInstitution(data);
+          }
+        });
+        fetchJson('/api/stats').then((data) => {
+          if (data && data.companies) {
+            setStats(data);
           }
         });
       }
@@ -160,141 +174,211 @@ export const App: React.FC = () => {
     }
   };
 
-  // Guardar noticia (Crear o Editar)
+  // Guardar noticia (Crear o Editar en Base de Datos)
   const handleSaveNews = async (newsData: Partial<NewsItem>) => {
     const isEdit = !!newsData.id;
-    let updatedList: NewsItem[];
+    const payload = isEdit 
+      ? newsData 
+      : {
+          id: 'noticia-' + Date.now(),
+          title: newsData.title || 'Nueva Noticia',
+          category: newsData.category || 'ACTUALIDAD',
+          date: new Date().toISOString().split('T')[0],
+          author: newsData.author || 'Prensa CBSF',
+          excerpt: newsData.excerpt || '',
+          content: newsData.content || '',
+          imageUrl: newsData.imageUrl || '/placeholder-news.svg',
+          featured: newsData.featured || false,
+          status: newsData.status || 'PUBLICADO'
+        };
 
-    if (isEdit) {
-      updatedList = news.map((n) => (n.id === newsData.id ? { ...n, ...newsData } as NewsItem : n));
-    } else {
-      const newItem: NewsItem = {
-        id: 'noticia-' + Date.now(),
-        title: newsData.title || 'Nueva Noticia',
-        category: newsData.category || 'ACTUALIDAD',
-        date: new Date().toISOString().split('T')[0],
-        author: newsData.author || 'Prensa CBSF',
-        excerpt: newsData.excerpt || '',
-        content: newsData.content || '',
-        imageUrl: newsData.imageUrl || '/placeholder-news.svg',
-        featured: newsData.featured || false,
-        status: newsData.status || 'PUBLICADO'
-      };
-      updatedList = [newItem, ...news];
-    }
-
-    setNews(updatedList);
-    localStorage.setItem('cbsf_news', JSON.stringify(updatedList));
-
-    // Guardar en la base de datos Neon PostgreSQL
+    // Guardar en la base de datos PostgreSQL / Backend
     try {
       const res = await fetch('/api/news', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isEdit ? { ...newsData, id: newsData.id } : updatedList[0])
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const saved = await res.json();
-        // Si el servidor retornó la noticia guardada, actualizar
         if (saved && saved.id) {
-          setNews((prev) => prev.map((n) => (n.id === saved.id ? saved : n)));
+          setNews((prev) => {
+            const exists = prev.some(n => n.id === saved.id);
+            if (exists) {
+              return prev.map(n => n.id === saved.id ? saved : n);
+            }
+            return [saved, ...prev];
+          });
         }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Error en el servidor de base de datos');
       }
-    } catch (err) {
-      console.log('Guardado en cache local:', err);
+    } catch (err: any) {
+      console.error('Error guardando noticia en BD:', err);
+      window.alert('No se pudo guardar la noticia en la base de datos: ' + (err.message || 'Error de conexión'));
+      throw err;
     }
   };
 
-  // Eliminar noticia en Neon PostgreSQL
+  // Eliminar noticia en Base de Datos
   const handleDeleteNews = async (id: string) => {
-    const filtered = news.filter((n) => n.id !== id);
-    setNews(filtered);
-    localStorage.setItem('cbsf_news', JSON.stringify(filtered));
-
     try {
-      await fetch(`/api/news?id=${id}`, { method: 'DELETE' });
-    } catch {
-      // Modo offline
+      const res = await fetch(`/api/news?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setNews((prev) => prev.filter((n) => n.id !== id));
+      } else {
+        throw new Error('Error al eliminar la noticia en la base de datos');
+      }
+    } catch (err: any) {
+      console.error('Error eliminando noticia en BD:', err);
+      window.alert('Error al eliminar en la base de datos: ' + (err.message || 'Error de conexión'));
     }
   };
 
-  // Actualizar alerta en vivo
+  // Actualizar alerta en Base de Datos
   const handleUpdateAlert = async (alertData: Partial<EmergencyAlert>) => {
-    const updated: EmergencyAlert = {
-      id: alert?.id || 'alert-1',
-      active: alertData.active ?? true,
-      title: alertData.title || 'ALERTA DE EMERGENCIA',
-      message: alertData.message || '',
-      type: alertData.type || 'warning',
-      updatedAt: new Date().toISOString()
-    };
-
-    setAlert(updated);
-    localStorage.setItem('cbsf_alert', JSON.stringify(updated));
-
     try {
-      await fetch('/api/alerts', {
+      const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(alertData)
       });
-    } catch {
-      // Modo offline/Vercel silencioso
+      if (res.ok) {
+        const saved = await res.json();
+        setAlert(saved);
+      } else {
+        throw new Error('Error al guardar la alerta en la base de datos');
+      }
+    } catch (err: any) {
+      console.error('Error actualizando alerta en BD:', err);
+      window.alert('No se pudo guardar la alerta en la base de datos: ' + (err.message || 'Error de conexión'));
+      throw err;
     }
   };
 
-  // Guardar diapositiva del slider
+  // Guardar diapositiva en Base de Datos
   const handleSaveSlide = async (slide: HeroSlide) => {
-    const exists = slides.some(s => s.id === slide.id);
-    let updated: HeroSlide[];
-    if (exists) {
-      updated = slides.map(s => s.id === slide.id ? slide : s);
-    } else {
-      updated = [...slides, slide];
-    }
-    setSlides(updated);
-    localStorage.setItem('cbsf_slides', JSON.stringify(updated));
-
     try {
-      await fetch('/api/slides', {
+      const res = await fetch('/api/slides', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(slide)
       });
-    } catch {
-      // Modo offline
+      if (res.ok) {
+        setSlides((prev) => {
+          const exists = prev.some(s => s.id === slide.id);
+          if (exists) {
+            return prev.map(s => s.id === slide.id ? slide : s);
+          }
+          return [...prev, slide];
+        });
+      } else {
+        throw new Error('Error al guardar la diapositiva en la base de datos');
+      }
+    } catch (err: any) {
+      console.error('Error guardando diapositiva en BD:', err);
+      window.alert('No se pudo guardar la diapositiva en la base de datos: ' + (err.message || 'Error de conexión'));
+      throw err;
     }
   };
 
-  // Eliminar diapositiva del slider
+  // Eliminar diapositiva en Base de Datos
   const handleDeleteSlide = async (id: string) => {
     if (slides.length <= 1) {
       window.alert('Debe mantenerse al menos una diapositiva en el slider.');
       return;
     }
-    const updated = slides.filter(s => s.id !== id);
-    setSlides(updated);
-    localStorage.setItem('cbsf_slides', JSON.stringify(updated));
 
     try {
-      await fetch(`/api/slides?id=${id}`, { method: 'DELETE' });
-    } catch {
-      // Modo offline
+      const res = await fetch(`/api/slides?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSlides((prev) => prev.filter(s => s.id !== id));
+      } else {
+        throw new Error('Error al eliminar la diapositiva en la base de datos');
+      }
+    } catch (err: any) {
+      console.error('Error eliminando diapositiva en BD:', err);
+      window.alert('Error al eliminar en la base de datos: ' + (err.message || 'Error de conexión'));
     }
   };
 
-  // Reordenar diapositivas
+  // Reordenar diapositivas en Base de Datos
   const handleReorderSlides = async (newSlides: HeroSlide[]) => {
-    setSlides(newSlides);
-    localStorage.setItem('cbsf_slides', JSON.stringify(newSlides));
     try {
-      await fetch('/api/slides', {
+      const res = await fetch('/api/slides', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSlides)
       });
-    } catch {
-      // Modo offline
+      if (res.ok) {
+        setSlides(newSlides);
+      } else {
+        throw new Error('Error al actualizar el orden de diapositivas en la base de datos');
+      }
+    } catch (err: any) {
+      console.error('Error reordenando diapositivas en BD:', err);
+      window.alert('No se pudo guardar el orden en la base de datos: ' + (err.message || 'Error de conexión'));
+    }
+  };
+
+  // Guardar datos de compañía en Base de Datos
+  const handleSaveCompany = async (company: Company) => {
+    try {
+      const res = await fetch('/api/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(company)
+      });
+      if (res.ok) {
+        setCompanies((prev) => prev.map(c => c.id === company.id ? company : c));
+      } else {
+        throw new Error('Error al guardar la compañía en la base de datos');
+      }
+    } catch (err: any) {
+      console.error('Error guardando compañía en BD:', err);
+      window.alert('No se pudo guardar la compañía en la base de datos: ' + (err.message || 'Error de conexión'));
+      throw err;
+    }
+  };
+
+  // Guardar directorio institucional en Base de Datos
+  const handleSaveInstitution = async (data: InstitutionData) => {
+    try {
+      const res = await fetch('/api/institution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        setInstitution(data);
+      } else {
+        throw new Error('Error al guardar datos institucionales en la base de datos');
+      }
+    } catch (err: any) {
+      console.error('Error guardando institución en BD:', err);
+      window.alert('No se pudo guardar en la base de datos: ' + (err.message || 'Error de conexión'));
+      throw err;
+    }
+  };
+
+  // Guardar estadísticas en Base de Datos
+  const handleSaveStats = async (newStats: StatsData) => {
+    try {
+      const res = await fetch('/api/stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStats)
+      });
+      if (res.ok) {
+        setStats(newStats);
+      } else {
+        throw new Error('Error al guardar estadísticas en la base de datos');
+      }
+    } catch (err: any) {
+      console.error('Error guardando estadísticas en BD:', err);
+      window.alert('No se pudo guardar en la base de datos: ' + (err.message || 'Error de conexión'));
+      throw err;
     }
   };
 
@@ -318,11 +402,7 @@ export const App: React.FC = () => {
       {/* 3. Ticker de Alerta Activa en Vivo */}
       <EmergencyTicker 
         alert={alert}
-        onOpenAlertModal={() => {
-          if (alert) {
-            window.alert(`${alert.title}\n\n${alert.message}`);
-          }
-        }}
+        onOpenAlertModal={() => setAlertModalOpen(true)}
       />
 
       {/* 4. Hero Slider Panorámico */}
@@ -388,11 +468,97 @@ export const App: React.FC = () => {
       />
 
       {institutionOpen && (
-        <InstitutionModal onClose={() => setInstitutionOpen(false)} />
+        <InstitutionModal onClose={() => setInstitutionOpen(false)} data={institution} />
       )}
 
       {cooperarOpen && (
         <CooperarModal onClose={() => setCooperarOpen(false)} />
+      )}
+
+      {/* Modal Oficial de Alerta de Emergencia */}
+      {alertModalOpen && alert && (
+        <div className="admin-modal-backdrop" onClick={() => setAlertModalOpen(false)}>
+          <div 
+            className="admin-modal-container" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '560px' }}
+          >
+            <div className="admin-modal-header" style={{ backgroundColor: '#B71C1C' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <AlertTriangle size={22} style={{ color: '#FFE600' }} />
+                <h3 style={{ color: '#FFFFFF', margin: 0, fontSize: '1.15rem' }}>
+                  Alerta Oficial de Emergencia
+                </h3>
+              </div>
+              <button 
+                onClick={() => setAlertModalOpen(false)}
+                style={{ color: '#FFFFFF', background: 'none', border: 'none', cursor: 'pointer' }}
+                aria-label="Cerrar modal"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="admin-modal-body" style={{ padding: '1.75rem' }}>
+              <div style={{
+                display: 'inline-block',
+                background: '#FFE600',
+                color: '#8A0000',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '4px',
+                marginBottom: '1rem',
+                letterSpacing: '0.5px'
+              }}>
+                {alert.title}
+              </div>
+
+              <p style={{
+                fontSize: '1.05rem',
+                lineHeight: 1.6,
+                color: '#1E293B',
+                fontWeight: 500,
+                marginBottom: '1.5rem'
+              }}>
+                {alert.message}
+              </p>
+
+              <div style={{
+                background: '#FEF2F2',
+                borderLeft: '4px solid #B71C1C',
+                padding: '0.85rem 1rem',
+                borderRadius: '0 8px 8px 0',
+                marginBottom: '1.5rem'
+              }}>
+                <span style={{ fontSize: '0.82rem', color: '#991B1B', fontWeight: 600 }}>
+                  Central de Alarmas y Despacho CBSF · Emergencias 132
+                </span>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#7F1D1D' }}>
+                  Ante columnas de humo, corte de calzada o personas atrapadas, llame de inmediato a nuestra central de guardia permanente.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <a 
+                  href="tel:132"
+                  className="btn-primary"
+                  style={{ flex: 1, justifyContent: 'center', textDecoration: 'none' }}
+                >
+                  <PhoneCall size={18} />
+                  <span>Llamar al 132</span>
+                </a>
+                <button 
+                  className="btn-outline"
+                  onClick={() => setAlertModalOpen(false)}
+                  style={{ padding: '0.65rem 1.25rem' }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {adminOpen && (
@@ -401,6 +567,9 @@ export const App: React.FC = () => {
           news={news}
           alert={alert}
           slides={slides}
+          companies={companies}
+          institution={institution}
+          stats={stats}
           currentUser={currentUser}
           onLogin={(user) => setCurrentUser(user)}
           onLogout={() => setCurrentUser(null)}
@@ -410,6 +579,9 @@ export const App: React.FC = () => {
           onSaveSlide={handleSaveSlide}
           onDeleteSlide={handleDeleteSlide}
           onReorderSlides={handleReorderSlides}
+          onSaveCompany={handleSaveCompany}
+          onSaveInstitution={handleSaveInstitution}
+          onSaveStats={handleSaveStats}
         />
       )}
     </div>

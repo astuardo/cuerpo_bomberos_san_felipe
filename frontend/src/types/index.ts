@@ -63,3 +63,17 @@ export interface HeroSlide {
   order?: number;
 }
 
+export interface InstitutionData {
+  superintendentName: string;
+  superintendentRole: string;
+  superintendentBio: string;
+  commanderName: string;
+  commanderRole: string;
+  commanderBio: string;
+  historyParagraph1: string;
+  historyParagraph2: string;
+  headquartersAddress: string;
+  headquartersPhone: string;
+  headquartersEmergency: string;
+}
+

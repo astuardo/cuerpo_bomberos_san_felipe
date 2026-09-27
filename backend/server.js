@@ -215,6 +215,50 @@ app.get('/api/companies/:id', (req, res) => {
   res.json(comp);
 });
 
+app.post('/api/companies', (req, res) => {
+  const db = readDB();
+  const body = req.body;
+  if (!db.companies) db.companies = [];
+
+  if (Array.isArray(body)) {
+    db.companies = body;
+  } else if (body && (body.id || body.number)) {
+    const idx = db.companies.findIndex(c => c.id === body.id || c.number === body.number);
+    if (idx >= 0) {
+      db.companies[idx] = { ...db.companies[idx], ...body };
+    } else {
+      db.companies.push(body);
+    }
+  }
+  writeDB(db);
+  res.json({ success: true, companies: db.companies });
+});
+
+// ================= Rutas de Institución y Directorio =================
+app.get('/api/institution', (req, res) => {
+  const db = readDB();
+  res.json(db.institution || {
+    superintendentName: 'David Nehemia Guajardo Sandoval',
+    superintendentRole: 'Superintendente',
+    superintendentBio: 'Representante legal y máxima autoridad directiva del Cuerpo de Bomberos de San Felipe.',
+    commanderName: 'Walter Román Staforelli Delgado',
+    commanderRole: 'Comandante',
+    commanderBio: 'Jefe de las operaciones activas, despacho de unidades y disciplina de las 7 compañías.',
+    historyParagraph1: 'El Cuerpo de Bomberos de San Felipe fue fundado el 11 de marzo de 1883 gracias al liderazgo del ciudadano y abogado don Moisés del Fierro y Arcaya, junto a vecinos progresistas que sintieron la imperiosa necesidad de dotar a la ciudad de una entidad organizada y voluntaria para proteger a las familias del Valle de Aconcagua.',
+    historyParagraph2: 'A lo largo de las décadas, la institución se expandió desde su primera bomba hasta consolidar una fuerza de 7 compañías, abarcando no solo la comuna de San Felipe, sino también Curimón, El Almendral y la vecina comuna de Panquehue, incorporando unidades especializadas en rescate subacuático (GERSA) y rescate agreste cordillerano.',
+    headquartersAddress: 'Calle Merced N° 832, San Felipe, Región de Valparaíso, Chile.',
+    headquartersPhone: '(34) 251 8817',
+    headquartersEmergency: '132'
+  });
+});
+
+app.post('/api/institution', (req, res) => {
+  const db = readDB();
+  db.institution = { ...(db.institution || {}), ...req.body };
+  writeDB(db);
+  res.json({ success: true, institution: db.institution });
+});
+
 // ================= Rutas de Alertas =================
 app.get('/api/alerts', (req, res) => {
   const db = readDB();
@@ -245,6 +289,13 @@ app.post('/api/alerts', (req, res) => {
 app.get('/api/stats', (req, res) => {
   const db = readDB();
   res.json(db.stats || {});
+});
+
+app.post('/api/stats', (req, res) => {
+  const db = readDB();
+  db.stats = { ...(db.stats || {}), ...req.body };
+  writeDB(db);
+  res.json({ success: true, stats: db.stats });
 });
 
 // ================= Rutas de Slider de Portada =================
