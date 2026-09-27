@@ -244,11 +244,12 @@
    EMERGENCY TICKER
    ============================================================ */
 .emergency-ticker {
-  background-color: #B71C1C;
+  background: linear-gradient(90deg, #990000 0%, #B71C1C 100%);
   color: var(--cbs-white);
-  padding: 0.65rem 0;
-  font-size: 0.88rem;
+  padding: 0.45rem 0;
+  font-size: 0.86rem;
   border-bottom: 2px solid #FFE600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .ticker-inner {
@@ -262,22 +263,60 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
 .ticker-badge {
   background-color: #FFE600;
-  color: #990000;
-  font-weight: 900;
-  padding: 0.2rem 0.6rem;
+  color: #8A0000;
+  font-weight: 800;
+  padding: 0.22rem 0.55rem;
   border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  letter-spacing: 0.6px;
+  font-size: 0.74rem;
+  letter-spacing: 0.5px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .ticker-text {
+  margin: 0 !important;
+  padding: 0;
   font-weight: 500;
+  line-height: 1.35;
+  color: #FFFFFF;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticker-btn {
+  color: #FFE600;
+  font-weight: 800;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  transition: var(--transition-fast);
+}
+
+.ticker-btn:hover {
+  background-color: rgba(255, 230, 0, 0.15);
+  color: #FFFFFF;
 }
 
 /* ============================================================
@@ -1215,9 +1254,43 @@
     width: 100%;
     justify-content: center;
   }
-  /* Ocultar flechas laterales en móvil para no tapar texto */
+  /* Flechas del Hero Slider en celular: compactas, semitransparentes y funcionales */
   .hero-arrow {
-    display: none !important;
+    display: flex !important;
+    width: 38px;
+    height: 38px;
+    background-color: rgba(0, 0, 0, 0.45);
+    z-index: 10;
+  }
+  .hero-arrow.prev { left: 0.5rem; }
+  .hero-arrow.next { right: 0.5rem; }
+  .hero-arrow svg { width: 20px; height: 20px; }
+
+  /* Emergency Ticker responsivo y compacto en móvil */
+  .emergency-ticker {
+    padding: 0.35rem 0;
+    font-size: 0.78rem;
+  }
+  .ticker-inner {
+    gap: 0.5rem;
+  }
+  .ticker-content {
+    gap: 0.45rem;
+  }
+  .ticker-badge {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+    letter-spacing: 0.3px;
+    max-width: 140px;
+  }
+  .ticker-text {
+    font-size: 0.76rem;
+    line-height: 1.25;
+    -webkit-line-clamp: 1;
+  }
+  .ticker-btn {
+    font-size: 0.72rem;
+    padding: 0.15rem 0.35rem;
   }
 
   /* Filtros de noticias con scroll horizontal en móvil */
@@ -1259,3 +1332,38 @@
     padding: 1.25rem;
   }
 }
+
+/* Pantallas pequeñas (celulares compactos <= 480px) */
+@media (max-width: 480px) {
+  .emergency-ticker {
+    padding: 0.3rem 0;
+  }
+  .ticker-inner {
+    gap: 0.35rem;
+  }
+  .ticker-badge {
+    max-width: 115px;
+    font-size: 0.65rem;
+    padding: 0.12rem 0.4rem;
+  }
+  .ticker-badge svg {
+    width: 11px;
+    height: 11px;
+  }
+  .ticker-text {
+    font-size: 0.73rem;
+  }
+  .ticker-btn {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.25rem;
+  }
+  .hero-arrow {
+    width: 32px;
+    height: 32px;
+  }
+  .hero-arrow svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+

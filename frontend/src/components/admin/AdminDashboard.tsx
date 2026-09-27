@@ -1,32 +1,41 @@
 import React, { useState, useRef } from 'react';
 import { 
   X, Lock, LogOut, Plus, Trash2, Edit3, AlertTriangle, 
-  FileText, Save, ShieldAlert, UploadCloud, Check, Loader2, Image as ImageIcon
+  FileText, Save, ShieldAlert, UploadCloud, Check, Loader2, Image as ImageIcon,
+  Sliders, ArrowUp, ArrowDown
 } from 'lucide-react';
-import { NewsItem, EmergencyAlert, AdminUser } from '../../types';
+import { NewsItem, EmergencyAlert, AdminUser, HeroSlide } from '../../types';
 
 interface AdminDashboardProps {
   onClose: () => void;
   news: NewsItem[];
   alert: EmergencyAlert | null;
+  slides?: HeroSlide[];
   currentUser: AdminUser | null;
   onLogin: (user: AdminUser) => void;
   onLogout: () => void;
   onSaveNews: (newsData: Partial<NewsItem>) => Promise<void>;
   onDeleteNews: (id: string) => Promise<void>;
   onUpdateAlert: (alertData: Partial<EmergencyAlert>) => Promise<void>;
+  onSaveSlide?: (slideData: HeroSlide) => Promise<void>;
+  onDeleteSlide?: (id: string) => Promise<void>;
+  onReorderSlides?: (slides: HeroSlide[]) => Promise<void>;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onClose,
   news,
   alert,
+  slides = [],
   currentUser,
   onLogin,
   onLogout,
   onSaveNews,
   onDeleteNews,
-  onUpdateAlert
+  onUpdateAlert,
+  onSaveSlide,
+  onDeleteSlide,
+  onReorderSlides
 }) => {
   // Login State
   const [loginUsername, setLoginUsername] = useState('admin');
@@ -34,9 +43,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [loginError, setLoginError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Tabs: 'news' | 'alert' | 'edit-news'
-  const [activeTab, setActiveTab] = useState<'news' | 'alert' | 'edit-news'>('news');
+  // Tabs: 'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide'
+  const [activeTab, setActiveTab] = useState<'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide'>('news');
   const [editingItem, setEditingItem] = useState<Partial<NewsItem> | null>(null);
+  const [editingSlide, setEditingSlide] = useState<Partial<HeroSlide> | null>(null);
+  const slideFileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingSlideImg, setUploadingSlideImg] = useState(false);
 
   // Alert Form State
   const [alertActive, setAlertActive] = useState(alert?.active ?? true);
@@ -180,6 +192,101 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Manejo de diapositivas del slider
+  const handleOpenSlideEditor = (slide?: HeroSlide) => {
+    if (slide) {
+      setEditingSlide({ ...slide });
+    } else {
+      setEditingSlide({
+        id: 'slide-' + Date.now(),
+        tag: 'DESTACADO CUERPO DE BOMBEROS',
+        title: '',
+        subtitle: '',
+        bgImage: '',
+        ctaPrimary: 'Conoce las 7 Compañías',
+        action: 'companias',
+        order: slides.length + 1
+      });
+    }
+    setActiveTab('edit-slide');
+  };
+
+  const handleSlideImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    if (file.size > 4.5 * 1024 * 1024) {
+      window.alert('La imagen supera el límite de 4.5 MB. Por favor comprímela o selecciona una más liviana.');
+      return;
+    }
+
+    setUploadingSlideImg(true);
+
+    try {
+      const response = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        headers: { 'content-type': file.type || 'image/jpeg' },
+        body: file
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Error al subir la imagen');
+      }
+      if (data.url) {
+        setEditingSlide(prev => prev ? { ...prev, bgImage: data.url } : null);
+      }
+    } catch (err: any) {
+      console.error(err);
+      window.alert('Error al subir la imagen: ' + (err.message || 'Error de conexión'));
+    } finally {
+      setUploadingSlideImg(false);
+      if (slideFileInputRef.current) {
+        slideFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleSlideSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSlide || !editingSlide.title) {
+      window.alert('Por favor ingrese el título de la diapositiva.');
+      return;
+    }
+    if (!editingSlide.bgImage) {
+      window.alert('Por favor proporcione una imagen de fondo (suba un archivo o pegue una URL).');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (onSaveSlide) {
+        await onSaveSlide(editingSlide as HeroSlide);
+      }
+      setActiveTab('slides');
+      setEditingSlide(null);
+    } catch (err) {
+      console.error(err);
+      window.alert('Error al guardar la diapositiva.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMoveSlide = async (index: number, direction: 'up' | 'down') => {
+    if (!onReorderSlides) return;
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= slides.length) return;
+
+    const newSlides = [...slides];
+    const [moved] = newSlides.splice(index, 1);
+    newSlides.splice(newIndex, 0, moved);
+
+    // Actualizar orden numérico
+    const reordered = newSlides.map((s, idx) => ({ ...s, order: idx + 1 }));
+    await onReorderSlides(reordered);
   };
 
   return (
@@ -344,16 +451,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <button
                 className={`tab-btn ${activeTab === 'alert' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('alert'); setEditingItem(null); }}
+                onClick={() => { setActiveTab('alert'); setEditingItem(null); setEditingSlide(null); }}
               >
                 <AlertTriangle size={16} style={{ display: 'inline', marginRight: '6px' }} />
                 Alerta en Portada
+              </button>
+
+              <button
+                className={`tab-btn ${activeTab === 'slides' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('slides'); setEditingItem(null); setEditingSlide(null); }}
+              >
+                <Sliders size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                Slider Portada ({slides.length})
               </button>
 
               {activeTab === 'edit-news' && (
                 <button className="tab-btn active">
                   <Edit3 size={16} style={{ display: 'inline', marginRight: '6px' }} />
                   {editingItem?.id ? 'Editar Noticia' : 'Nueva Noticia'}
+                </button>
+              )}
+
+              {activeTab === 'edit-slide' && (
+                <button className="tab-btn active">
+                  <Edit3 size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  {editingSlide?.id && slides.some(s => s.id === editingSlide.id) ? 'Editar Diapositiva' : 'Nueva Diapositiva'}
                 </button>
               )}
             </div>
@@ -698,6 +820,323 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   >
                     <Save size={16} />
                     <span>{isSubmitting ? 'Actualizando...' : 'Guardar y Publicar Alerta'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Tab 3: Lista de Diapositivas del Slider */}
+            {activeTab === 'slides' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <h4 style={{ margin: 0 }}>Diapositivas del Slider de Portada</h4>
+                    <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                      Las diapositivas rotan en la portada del sitio. Puedes ordenarlas, editarlas o agregar nuevas.
+                    </span>
+                  </div>
+                  <button className="btn-primary" onClick={() => handleOpenSlideEditor()}>
+                    <Plus size={16} />
+                    <span>Nueva Diapositiva</span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {slides.map((slide, idx) => (
+                    <div 
+                      key={slide.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                        padding: '0.85rem 1rem',
+                        background: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      {/* Miniatura y textos */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1', minWidth: '240px' }}>
+                        <div style={{
+                          width: '100px',
+                          height: '60px',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          background: '#1E293B',
+                          flexShrink: 0
+                        }}>
+                          <img 
+                            src={slide.bgImage} 
+                            alt={slide.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{
+                            display: 'inline-block',
+                            background: 'var(--cbs-red)',
+                            color: '#FFFFFF',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '3px',
+                            marginBottom: '3px'
+                          }}>
+                            {slide.tag}
+                          </span>
+                          <h5 style={{ margin: '0 0 3px 0', fontSize: '0.92rem', color: '#0F172A', lineHeight: 1.2 }}>
+                            {slide.title}
+                          </h5>
+                          <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '420px' }}>
+                            {slide.subtitle}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Botón CTA info */}
+                      <div style={{ fontSize: '0.78rem', color: '#475569', background: '#FFFFFF', padding: '0.3rem 0.6rem', borderRadius: '4px', border: '1px solid #E2E8F0' }}>
+                        Botón: <strong>{slide.ctaPrimary}</strong> &rarr; <code>#{slide.action}</code>
+                      </div>
+
+                      {/* Botones de acción */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <button 
+                          onClick={() => handleMoveSlide(idx, 'up')}
+                          disabled={idx === 0}
+                          title="Subir posición"
+                          style={{
+                            padding: '0.4rem',
+                            background: '#FFFFFF',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: '4px',
+                            cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                            opacity: idx === 0 ? 0.4 : 1
+                          }}
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleMoveSlide(idx, 'down')}
+                          disabled={idx === slides.length - 1}
+                          title="Bajar posición"
+                          style={{
+                            padding: '0.4rem',
+                            background: '#FFFFFF',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: '4px',
+                            cursor: idx === slides.length - 1 ? 'not-allowed' : 'pointer',
+                            opacity: idx === slides.length - 1 ? 0.4 : 1
+                          }}
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleOpenSlideEditor(slide)}
+                          className="btn-action edit"
+                          title="Editar diapositiva"
+                          style={{ marginLeft: '0.25rem' }}
+                        >
+                          <Edit3 size={15} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`¿Seguro que deseas eliminar la diapositiva "${slide.title}"?`)) {
+                              if (onDeleteSlide) onDeleteSlide(slide.id);
+                            }
+                          }}
+                          className="btn-action delete"
+                          title="Eliminar diapositiva"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tab 4: Editor de Diapositiva */}
+            {activeTab === 'edit-slide' && editingSlide && (
+              <form onSubmit={handleSlideSubmit}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <h4 style={{ margin: 0 }}>
+                    {slides.some(s => s.id === editingSlide.id) ? 'Editar Diapositiva del Slider' : 'Crear Nueva Diapositiva'}
+                  </h4>
+                  <button 
+                    type="button" 
+                    onClick={() => { setActiveTab('slides'); setEditingSlide(null); }}
+                    style={{ fontSize: '0.85rem', color: '#666', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    Cancelar y Volver
+                  </button>
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Etiqueta Superior (Pastilla Roja)</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="admin-input" 
+                    value={editingSlide.tag || ''}
+                    onChange={(e) => setEditingSlide({ ...editingSlide, tag: e.target.value })}
+                    placeholder="Ej. DESDE EL 11 DE MARZO DE 1883 o FUERZA OPERATIVA"
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Título Principal (En mayúsculas)</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="admin-input" 
+                    value={editingSlide.title || ''}
+                    onChange={(e) => setEditingSlide({ ...editingSlide, title: e.target.value })}
+                    placeholder="Ej. CONSTANCIA Y DISCIPLINA AL SERVICIO DEL VALLE DE ACONCAGUA"
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Descripción / Bajada</label>
+                  <textarea 
+                    rows={3}
+                    className="admin-textarea" 
+                    value={editingSlide.subtitle || ''}
+                    onChange={(e) => setEditingSlide({ ...editingSlide, subtitle: e.target.value })}
+                    placeholder="Texto explicativo breve que acompaña el título en el slider..."
+                  />
+                </div>
+
+                {/* Imagen de Fondo */}
+                <div className="admin-form-group">
+                  <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <ImageIcon size={16} /> Foto de Fondo de la Diapositiva
+                  </label>
+
+                  {/* Vista previa si ya existe imagen */}
+                  {editingSlide.bgImage && (
+                    <div style={{ marginBottom: '0.75rem', position: 'relative', borderRadius: '8px', overflow: 'hidden', height: '140px', background: '#0F172A' }}>
+                      <img 
+                        src={editingSlide.bgImage} 
+                        alt="Preview" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '0.35rem 0.75rem', color: '#FFFFFF', fontSize: '0.75rem' }}>
+                        Vista previa activa
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selector / Subidor de archivo desde Dispositivo */}
+                  <div style={{
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    marginBottom: '0.75rem'
+                  }}>
+                    <input 
+                      type="file" 
+                      ref={slideFileInputRef}
+                      onChange={handleSlideImageUpload}
+                      accept="image/jpeg, image/png, image/webp, image/gif"
+                      style={{ display: 'none' }}
+                      id="slide-file-upload-input"
+                    />
+
+                    {uploadingSlideImg ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', color: '#0284c7' }}>
+                        <Loader2 className="animate-spin" size={24} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Subiendo foto de fondo...</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => slideFileInputRef.current?.click()}
+                          style={{
+                            background: '#C40000',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '0.5rem 1.25rem',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem'
+                          }}
+                        >
+                          <UploadCloud size={16} /> Subir Foto desde Celular o PC
+                        </button>
+                        <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
+                          Sube fotos de carros, ejercicios o cuarteles (JPG, PNG, WebP)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <input 
+                    type="text" 
+                    required
+                    className="admin-input" 
+                    value={editingSlide.bgImage || ''}
+                    onChange={(e) => setEditingSlide({ ...editingSlide, bgImage: e.target.value })}
+                    placeholder="O pega una URL directa de imagen (ej. https://...)"
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                  <div className="admin-form-group">
+                    <label className="admin-label">Texto del Botón</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="admin-input" 
+                      value={editingSlide.ctaPrimary || ''}
+                      onChange={(e) => setEditingSlide({ ...editingSlide, ctaPrimary: e.target.value })}
+                      placeholder="Ej. Conoce las 7 Compañías"
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Sección de Destino</label>
+                    <select 
+                      className="admin-select"
+                      value={editingSlide.action || 'companias'}
+                      onChange={(e) => setEditingSlide({ ...editingSlide, action: e.target.value })}
+                    >
+                      <option value="companias">Las 7 Compañías (#companias)</option>
+                      <option value="especialidades">Especialidades GERSA/Agreste (#especialidades)</option>
+                      <option value="noticias">Últimas Noticias (#noticias)</option>
+                      <option value="cuarteles">Cuarteles y Mapa (#cuarteles)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                  <button 
+                    type="submit" 
+                    className="btn-primary"
+                    disabled={isSubmitting}
+                  >
+                    <Save size={16} />
+                    <span>{isSubmitting ? 'Guardando...' : 'Guardar Diapositiva'}</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-outline"
+                    onClick={() => { setActiveTab('slides'); setEditingSlide(null); }}
+                  >
+                    Cancelar
                   </button>
                 </div>
               </form>

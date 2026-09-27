@@ -247,6 +247,40 @@ app.get('/api/stats', (req, res) => {
   res.json(db.stats || {});
 });
 
+// ================= Rutas de Slider de Portada =================
+app.get('/api/slides', (req, res) => {
+  const db = readDB();
+  res.json(db.slides || []);
+});
+
+app.post('/api/slides', (req, res) => {
+  const db = readDB();
+  if (Array.isArray(req.body)) {
+    db.slides = req.body;
+  } else {
+    if (!db.slides) db.slides = [];
+    const item = req.body;
+    const index = db.slides.findIndex(s => s.id === item.id);
+    if (index >= 0) {
+      db.slides[index] = item;
+    } else {
+      db.slides.push(item);
+    }
+  }
+  writeDB(db);
+  res.json({ success: true, slides: db.slides });
+});
+
+app.delete('/api/slides/:id', (req, res) => {
+  const db = readDB();
+  if (db.slides) {
+    db.slides = db.slides.filter(s => s.id !== req.params.id);
+    writeDB(db);
+  }
+  res.json({ success: true, message: 'Diapositiva eliminada' });
+});
+
+
 // ================= Ruta de Subida de Archivos / Imágenes =================
 app.post('/api/upload', (req, res) => {
   const filename = req.query.filename || `upload-${Date.now()}.jpg`;

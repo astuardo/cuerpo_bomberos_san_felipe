@@ -25,9 +25,10 @@ import {
   INITIAL_COMPANIES, 
   INITIAL_NEWS, 
   INITIAL_STATS, 
-  INITIAL_ALERT 
+  INITIAL_ALERT,
+  INITIAL_SLIDES 
 } from './data/initialData';
-import { Company, NewsItem, EmergencyAlert, StatsData, AdminUser } from './types';
+import { Company, NewsItem, EmergencyAlert, StatsData, AdminUser, HeroSlide } from './types';
 
 export const App: React.FC = () => {
   // Datos principales con persistencia en localStorage para Vercel
@@ -44,6 +45,11 @@ export const App: React.FC = () => {
   const [alert, setAlert] = useState<EmergencyAlert | null>(() => {
     const saved = localStorage.getItem('cbsf_alert');
     return saved ? JSON.parse(saved) : INITIAL_ALERT;
+  });
+
+  const [slides, setSlides] = useState<HeroSlide[]>(() => {
+    const saved = localStorage.getItem('cbsf_slides');
+    return saved ? JSON.parse(saved) : INITIAL_SLIDES;
   });
 
   const [stats, setStats] = useState<StatsData>(INITIAL_STATS);
@@ -105,6 +111,13 @@ export const App: React.FC = () => {
       }
     });
 
+    // Cargar diapositivas del slider
+    fetchJson('/api/slides').then((data) => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setSlides(data);
+      }
+    });
+
     // Refrescar al volver a la app o pestaña
     const handleSync = () => {
       if (document.visibilityState === 'visible') {
@@ -116,6 +129,11 @@ export const App: React.FC = () => {
         fetchJson('/api/alerts').then((data) => {
           if (data && Array.isArray(data) && data.length > 0) {
             setAlert(data[0]);
+          }
+        });
+        fetchJson('/api/slides').then((data) => {
+          if (data && Array.isArray(data) && data.length > 0) {
+            setSlides(data);
           }
         });
       }
@@ -225,6 +243,61 @@ export const App: React.FC = () => {
     }
   };
 
+  // Guardar diapositiva del slider
+  const handleSaveSlide = async (slide: HeroSlide) => {
+    const exists = slides.some(s => s.id === slide.id);
+    let updated: HeroSlide[];
+    if (exists) {
+      updated = slides.map(s => s.id === slide.id ? slide : s);
+    } else {
+      updated = [...slides, slide];
+    }
+    setSlides(updated);
+    localStorage.setItem('cbsf_slides', JSON.stringify(updated));
+
+    try {
+      await fetch('/api/slides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(slide)
+      });
+    } catch {
+      // Modo offline
+    }
+  };
+
+  // Eliminar diapositiva del slider
+  const handleDeleteSlide = async (id: string) => {
+    if (slides.length <= 1) {
+      window.alert('Debe mantenerse al menos una diapositiva en el slider.');
+      return;
+    }
+    const updated = slides.filter(s => s.id !== id);
+    setSlides(updated);
+    localStorage.setItem('cbsf_slides', JSON.stringify(updated));
+
+    try {
+      await fetch(`/api/slides?id=${id}`, { method: 'DELETE' });
+    } catch {
+      // Modo offline
+    }
+  };
+
+  // Reordenar diapositivas
+  const handleReorderSlides = async (newSlides: HeroSlide[]) => {
+    setSlides(newSlides);
+    localStorage.setItem('cbsf_slides', JSON.stringify(newSlides));
+    try {
+      await fetch('/api/slides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSlides)
+      });
+    } catch {
+      // Modo offline
+    }
+  };
+
   return (
     <div className="site-wrapper">
       {/* 1. Topbar Superior Oficial */}
@@ -254,6 +327,7 @@ export const App: React.FC = () => {
 
       {/* 4. Hero Slider Panorámico */}
       <HeroSlider 
+        slides={slides}
         onNavigateSection={handleNavigateSection}
         onOpenCooperar={() => setCooperarOpen(true)}
       />
@@ -326,12 +400,16 @@ export const App: React.FC = () => {
           onClose={() => setAdminOpen(false)}
           news={news}
           alert={alert}
+          slides={slides}
           currentUser={currentUser}
           onLogin={(user) => setCurrentUser(user)}
           onLogout={() => setCurrentUser(null)}
           onSaveNews={handleSaveNews}
           onDeleteNews={handleDeleteNews}
           onUpdateAlert={handleUpdateAlert}
+          onSaveSlide={handleSaveSlide}
+          onDeleteSlide={handleDeleteSlide}
+          onReorderSlides={handleReorderSlides}
         />
       )}
     </div>

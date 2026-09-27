@@ -14,23 +14,16 @@ export const EmergencyTicker: React.FC<EmergencyTickerProps> = ({ alert, onOpenA
     <aside className="emergency-ticker" aria-label="Alerta de emergencia en vivo">
       <div className="container ticker-inner">
         <div className="ticker-content">
-          <div className="ticker-badge">
-            <AlertTriangle size={13} style={{ display: 'inline', marginRight: '4px' }} />
-            {alert.title}
-          </div>
-          <p className="ticker-text">{alert.message}</p>
+          <span className="ticker-badge">
+            <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+            <span>{alert.title}</span>
+          </span>
+          <span className="ticker-text">{alert.message}</span>
         </div>
         <button 
           onClick={onOpenAlertModal}
-          style={{ 
-            color: '#FFE600', 
-            fontWeight: 800, 
-            fontSize: '0.8rem', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '2px',
-            whiteSpace: 'nowrap'
-          }}
+          className="ticker-btn"
+          aria-label="Ver detalles de la alerta"
         >
           <span>SABER MÁS</span>
           <ChevronRight size={14} />

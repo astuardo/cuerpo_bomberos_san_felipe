@@ -51,3 +51,15 @@ export interface AdminUser {
   role: string;
   token?: string;
 }
+
+export interface HeroSlide {
+  id: string;
+  tag: string;
+  title: string;
+  subtitle: string;
+  bgImage: string;
+  ctaPrimary: string;
+  action: string;
+  order?: number;
+}
+

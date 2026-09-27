@@ -1,62 +1,111 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, PhoneCall, ShieldAlert } from 'lucide-react';
+import { HeroSlide } from '../../types';
+import { INITIAL_SLIDES } from '../../data/initialData';
 
 interface HeroSliderProps {
+  slides?: HeroSlide[];
   onNavigateSection: (sectionId: string) => void;
   onOpenCooperar: () => void;
 }
 
-const SLIDES = [
-  {
-    id: 1,
-    tag: 'DESDE EL 11 DE MARZO DE 1883',
-    title: 'CONSTANCIA Y DISCIPLINA AL SERVICIO DEL VALLE DE ACONCAGUA',
-    subtitle: 'Más de 141 años protegiendo vidas y bienes en San Felipe, Curimón, Panquehue y sectores rurales con vocación 100% voluntaria.',
-    bgImage: 'https://images.unsplash.com/photo-1527525443983-6e60c75fff46?auto=format&fit=crop&w=1920&q=85',
-    ctaPrimary: 'Conoce las 7 Compañías',
-    action: 'companias'
-  },
-  {
-    id: 2,
-    tag: 'FUERZA OPERATIVA MULTIDISCIPLINARIA',
-    title: 'ESPECIALISTAS EN RESCATE SUBACUÁTICO Y AGRESTE',
-    subtitle: 'Dotados de grupos de rescate técnico: unidad GERSA en el río Aconcagua, brigada forestal GTO y rescate agreste de montaña.',
-    bgImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1920&q=85',
-    ctaPrimary: 'Nuestras Especialidades',
-    action: 'especialidades'
-  },
-  {
-    id: 3,
-    tag: 'CENTRAL DE ALARMAS Y DESPACHO 132',
-    title: 'HASTA DAR LA VIDA SI FUERE NECESARIO',
-    subtitle: 'Guardianes las 24 horas del día ante incendios estructurales, rescates en autopista CH-60 e incidentes con materiales peligrosos.',
-    bgImage: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1920&q=85',
-    ctaPrimary: 'Últimas Noticias',
-    action: 'noticias'
-  }
-];
-
-export const HeroSlider: React.FC<HeroSliderProps> = ({ onNavigateSection, onOpenCooperar }) => {
+export const HeroSlider: React.FC<HeroSliderProps> = ({ 
+  slides = INITIAL_SLIDES,
+  onNavigateSection, 
+  onOpenCooperar 
+}) => {
+  const activeSlides = (slides && slides.length > 0) ? slides : INITIAL_SLIDES;
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
+  const [mouseDownX, setMouseDownX] = useState<number | null>(null);
 
+  // Asegurar que currentSlide esté en rango si la cantidad de slides cambia
   useEffect(() => {
+    if (currentSlide >= activeSlides.length) {
+      setCurrentSlide(0);
+    }
+  }, [activeSlides.length, currentSlide]);
+
+  // Auto-play que se reinicia al cambiar manualmente de diapositiva
+  useEffect(() => {
+    if (activeSlides.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
-    }, 6000);
+      setCurrentSlide((prev) => (prev + 1) % activeSlides.length);
+    }, 6500);
     return () => clearInterval(timer);
-  }, []);
+  }, [currentSlide, activeSlides.length]);
 
   const handlePrev = () => {
-    setCurrentSlide((prev) => (prev === 0 ? SLIDES.length - 1 : prev - 1));
+    setCurrentSlide((prev) => (prev === 0 ? activeSlides.length - 1 : prev - 1));
   };
 
   const handleNext = () => {
-    setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+    setCurrentSlide((prev) => (prev + 1) % activeSlides.length);
+  };
+
+  // Soporte de gestos táctiles (Swipe en celulares y tablets)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart({
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    });
+    setTouchDeltaX(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+    const diffX = e.touches[0].clientX - touchStart.x;
+    const diffY = e.touches[0].clientY - touchStart.y;
+    // Si el movimiento es vertical para hacer scroll en la página, no interferir
+    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffX) < 15) {
+      return;
+    }
+    setTouchDeltaX(diffX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart) return;
+    const minSwipeDistance = 45; // Distancia mínima en píxeles para reconocer swipe
+    if (touchDeltaX > minSwipeDistance) {
+      handlePrev(); // Deslizar a la derecha -> diapositiva anterior
+    } else if (touchDeltaX < -minSwipeDistance) {
+      handleNext(); // Deslizar a la izquierda -> siguiente diapositiva
+    }
+    setTouchStart(null);
+    setTouchDeltaX(0);
+  };
+
+  // Soporte de arrastre con mouse para PC
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest('button, a')) return;
+    setMouseDownX(e.clientX);
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (mouseDownX === null) return;
+    const diffX = e.clientX - mouseDownX;
+    if (diffX > 50) {
+      handlePrev();
+    } else if (diffX < -50) {
+      handleNext();
+    }
+    setMouseDownX(null);
   };
 
   return (
-    <div className="hero-slider" id="inicio">
-      {SLIDES.map((slide, index) => (
+    <div 
+      className="hero-slider" 
+      id="inicio"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      style={{ touchAction: 'pan-y' }}
+    >
+      {activeSlides.map((slide, index) => (
         <div
           key={slide.id}
           className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
@@ -108,7 +157,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ onNavigateSection, onOpe
 
       {/* Paginación con dots */}
       <div className="hero-dots">
-        {SLIDES.map((slide, index) => (
+        {activeSlides.map((slide, index) => (
           <button
             key={slide.id}
             className={`hero-dot ${index === currentSlide ? 'active' : ''}`}
