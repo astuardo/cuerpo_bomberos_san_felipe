@@ -9,7 +9,7 @@ interface InstitutionModalProps {
 
 export const InstitutionModal: React.FC<InstitutionModalProps> = ({ onClose, data = INITIAL_INSTITUTION }) => {
   return (
-    <div className="admin-modal-backdrop" onClick={onClose}>
+    <div className="admin-modal-backdrop">
       <div 
         className="admin-modal-container" 
         onClick={(e) => e.stopPropagation()}

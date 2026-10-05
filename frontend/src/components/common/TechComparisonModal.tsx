@@ -26,7 +26,7 @@ export const TechComparisonModal: React.FC<TechComparisonModalProps> = ({ onClos
   };
 
   return (
-    <div className="admin-modal-backdrop" onClick={onClose}>
+    <div className="admin-modal-backdrop">
       <div 
         className="admin-modal-container" 
         onClick={(e) => e.stopPropagation()}

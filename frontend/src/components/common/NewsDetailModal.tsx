@@ -10,8 +10,17 @@ interface NewsDetailModalProps {
 export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsItem, onClose }) => {
   if (!newsItem) return null;
 
+  // Permitir cerrar cómodamente con tecla Escape
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="admin-modal-backdrop" onClick={onClose}>
+    <div className="admin-modal-backdrop">
       <div 
         className="admin-modal-container" 
         onClick={(e) => e.stopPropagation()}
@@ -27,8 +36,8 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsItem, onCl
 
           <button 
             onClick={onClose} 
-            style={{ color: '#FFFFFF', opacity: 0.9 }}
-            aria-label="Cerrar modal"
+            style={{ color: '#FFFFFF', opacity: 0.9, background: 'none', border: 'none', cursor: 'pointer' }}
+            aria-label="Cerrar noticia"
           >
             <X size={24} />
           </button>
@@ -78,25 +87,34 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsItem, onCl
             {newsItem.content}
           </div>
 
-          <div style={{ marginTop: '2.5rem', paddingTop: '1.25rem', borderTop: '1px solid #ECECEC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ marginTop: '2.5rem', paddingTop: '1.25rem', borderTop: '1px solid #ECECEC', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <span style={{ fontSize: '0.85rem', color: '#888' }}>
               Cuerpo de Bomberos de San Felipe · Oficialía de Comunicaciones
             </span>
-            <button 
-              className="btn-outline" 
-              style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({ title: newsItem.title, text: newsItem.excerpt, url: window.location.href });
-                } else {
-                  navigator.clipboard.writeText(window.location.href);
-                  alert('Enlace copiado al portapapeles');
-                }
-              }}
-            >
-              <Share2 size={14} />
-              <span>Compartir</span>
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                className="btn-outline" 
+                style={{ padding: '0.45rem 1rem', fontSize: '0.82rem' }}
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: newsItem.title, text: newsItem.excerpt, url: window.location.href });
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Enlace copiado al portapapeles');
+                  }
+                }}
+              >
+                <Share2 size={14} />
+                <span>Compartir</span>
+              </button>
+              <button 
+                className="btn-primary" 
+                style={{ padding: '0.45rem 1.25rem', fontSize: '0.82rem' }}
+                onClick={onClose}
+              >
+                <span>Cerrar Noticia</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

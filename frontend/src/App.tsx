@@ -507,7 +507,7 @@ export const App: React.FC = () => {
 
       {/* Modal Oficial de Alerta de Emergencia */}
       {alertModalOpen && alert && (
-        <div className="admin-modal-backdrop" onClick={() => setAlertModalOpen(false)}>
+        <div className="admin-modal-backdrop">
           <div 
             className="admin-modal-container" 
             onClick={(e) => e.stopPropagation()}

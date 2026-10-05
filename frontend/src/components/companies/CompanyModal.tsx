@@ -11,7 +11,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({ company, onClose }) 
   if (!company) return null;
 
   return (
-    <div className="admin-modal-backdrop" onClick={onClose}>
+    <div className="admin-modal-backdrop">
       <div 
         className="admin-modal-container" 
         onClick={(e) => e.stopPropagation()}

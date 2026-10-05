@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, Lock, LogOut, Plus, Trash2, Edit3, AlertTriangle, 
   FileText, Save, ShieldAlert, UploadCloud, Check, Loader2, Image as ImageIcon,
@@ -64,6 +64,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingSlide, setEditingSlide] = useState<Partial<HeroSlide> | null>(null);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [companyUnitsInput, setCompanyUnitsInput] = useState<string>('');
+  
+  // Persistencia de Borrador de Noticia
+  const DRAFT_NEWS_KEY = 'cbsf_news_draft';
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  // Auto-guardado continuo en localStorage
+  useEffect(() => {
+    if (activeTab === 'edit-news' && editingItem && !editingItem.id) {
+      if (editingItem.title?.trim() || editingItem.content?.trim() || editingItem.excerpt?.trim()) {
+        try {
+          localStorage.setItem(DRAFT_NEWS_KEY, JSON.stringify(editingItem));
+        } catch (_) {}
+      }
+    }
+  }, [editingItem, activeTab]);
+
+  // Cierre seguro con confirmación si hay cambios en redacción
+  const handleSafeClose = () => {
+    if (activeTab === 'edit-news' && editingItem && (editingItem.title?.trim() || editingItem.content?.trim())) {
+      const confirmExit = window.confirm(
+        'Tienes una noticia en redacción. Tu borrador se conservará guardado en tu equipo. ¿Deseas cerrar el panel de administración?'
+      );
+      if (!confirmExit) return;
+    }
+    onClose();
+  };
   
   // State for Institution & Stats
   const [instForm, setInstForm] = useState<InstitutionData>(institution);
@@ -165,17 +191,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleOpenEditor = (item?: NewsItem) => {
     if (item) {
       setEditingItem({ ...item });
+      setDraftRestored(false);
     } else {
-      setEditingItem({
-        title: '',
-        category: 'ACTUALIDAD',
-        author: currentUser?.name || 'Prensa CBSF',
-        excerpt: '',
-        content: '',
-        imageUrl: '/placeholder-news.svg',
-        featured: false,
-        status: 'PUBLICADO'
-      });
+      // Verificar si hay un borrador guardado en este dispositivo
+      let draft: Partial<NewsItem> | null = null;
+      try {
+        const saved = localStorage.getItem(DRAFT_NEWS_KEY);
+        if (saved) draft = JSON.parse(saved);
+      } catch (_) {}
+
+      if (draft && (draft.title?.trim() || draft.content?.trim())) {
+        setEditingItem(draft);
+        setDraftRestored(true);
+      } else {
+        setEditingItem({
+          title: '',
+          category: 'ACTUALIDAD',
+          author: currentUser?.name || 'Prensa CBSF',
+          excerpt: '',
+          content: '',
+          imageUrl: '/placeholder-news.svg',
+          featured: false,
+          status: 'PUBLICADO'
+        });
+        setDraftRestored(false);
+      }
     }
     setActiveTab('edit-news');
   };
@@ -188,6 +228,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     try {
       await onSaveNews(editingItem);
+      try { localStorage.removeItem(DRAFT_NEWS_KEY); } catch (_) {}
+      setDraftRestored(false);
       setActiveTab('news');
       setEditingItem(null);
     } catch (err) {
@@ -196,6 +238,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Cancel News Edit
+  const handleCancelNewsEdit = () => {
+    if (editingItem && (editingItem.title?.trim() || editingItem.content?.trim())) {
+      const confirmDiscard = window.confirm('¿Deseas descartar los cambios no guardados de esta noticia?');
+      if (!confirmDiscard) return;
+      try { localStorage.removeItem(DRAFT_NEWS_KEY); } catch (_) {}
+    }
+    setDraftRestored(false);
+    setActiveTab('news');
+    setEditingItem(null);
   };
 
   // Submit Alert
@@ -381,7 +435,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="admin-modal-backdrop" onClick={onClose}>
+    <div className="admin-modal-backdrop">
       <div 
         className="admin-modal-container" 
         onClick={(e) => e.stopPropagation()}
@@ -417,7 +471,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          <button onClick={onClose} style={{ color: '#FFFFFF' }} aria-label="Cerrar modal">
+          <button onClick={handleSafeClose} style={{ color: '#FFFFFF', background: 'none', border: 'none', cursor: 'pointer' }} aria-label="Cerrar modal">
             <X size={24} />
           </button>
         </div>
@@ -690,6 +744,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Tab 2: Editor de Noticia */}
             {activeTab === 'edit-news' && editingItem && (
               <form onSubmit={handleNewsSubmit}>
+                {draftRestored && (
+                  <div style={{
+                    marginBottom: '1rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: '#FEF3C7',
+                    borderLeft: '4px solid #F59E0B',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem',
+                    fontSize: '0.85rem',
+                    color: '#92400E'
+                  }}>
+                    <span>📝 <strong>Borrador recuperado:</strong> Se cargó el texto que estabas redactando previamente.</span>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        try { localStorage.removeItem(DRAFT_NEWS_KEY); } catch (_) {}
+                        setDraftRestored(false);
+                        setEditingItem({
+                          title: '',
+                          category: 'ACTUALIDAD',
+                          author: currentUser?.name || 'Prensa CBSF',
+                          excerpt: '',
+                          content: '',
+                          imageUrl: '/placeholder-news.svg',
+                          featured: false,
+                          status: 'PUBLICADO'
+                        });
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#B45309',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        fontSize: '0.8rem'
+                      }}
+                    >
+                      Descartar y empezar en blanco
+                    </button>
+                  </div>
+                )}
                 <div className="admin-form-group">
                   <label className="admin-label">Título de la Noticia</label>
                   <input 
@@ -879,7 +979,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <button 
                     type="button" 
                     className="btn-outline"
-                    onClick={() => { setActiveTab('news'); setEditingItem(null); }}
+                    onClick={handleCancelNewsEdit}
                   >
                     Cancelar
                   </button>
