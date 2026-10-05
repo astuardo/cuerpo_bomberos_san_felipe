@@ -6,9 +6,10 @@ interface FooterProps {
   companies: Company[];
   onSelectCompany: (company: Company) => void;
   onOpenCooperar: () => void;
+  onOpenTechModal?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ companies, onSelectCompany, onOpenCooperar }) => {
+export const Footer: React.FC<FooterProps> = ({ companies, onSelectCompany, onOpenCooperar, onOpenTechModal }) => {
   return (
     <footer className="cbs-footer">
       <div className="container">
@@ -142,15 +143,36 @@ export const Footer: React.FC<FooterProps> = ({ companies, onSelectCompany, onOp
       </div>
 
       <div className="footer-base">
-        <div className="container footer-base-inner">
+        <div className="container footer-base-inner" style={{ flexWrap: 'wrap', gap: '1rem' }}>
           <p style={{ margin: 0 }}>
             © 2026 Cuerpo de Bomberos de San Felipe - Valle de Aconcagua. Todos los derechos reservados.
           </p>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            <a href="https://www.bomberos.cl" target="_blank" rel="noopener noreferrer" style={{ color: '#FEE2E2' }}>
+          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <a href="https://www.bomberos.cl" target="_blank" rel="noopener noreferrer" style={{ color: '#FEE2E2', fontSize: '0.85rem' }}>
               Bomberos de Chile
             </a>
-            <span style={{ opacity: 0.7 }}>Emergencias: 132</span>
+            {onOpenTechModal && (
+              <button 
+                onClick={onOpenTechModal}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  color: '#FFE600',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title="Ver informe técnico comparativo: Vercel vs WordPress"
+              >
+                <span>⚡ Memoria Técnica: Vercel vs. WordPress</span>
+              </button>
+            )}
+            <span style={{ opacity: 0.7, fontSize: '0.85rem' }}>Emergencias: 132</span>
           </div>
         </div>
       </div>

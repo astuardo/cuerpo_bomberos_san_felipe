@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Lock, Menu, X, Shield, Users, Award, BookOpen, Flame } from 'lucide-react';
+import { ChevronDown, Lock, Menu, X, Shield, Users, Award, BookOpen, Flame, Cpu } from 'lucide-react';
 import { Company } from '../../types';
 
 interface MainHeaderProps {
@@ -8,6 +8,7 @@ interface MainHeaderProps {
   onNavigateSection: (sectionId: string) => void;
   onOpenAdmin: () => void;
   onOpenInstitutionModal: () => void;
+  onOpenTechModal?: () => void;
 }
 
 export const MainHeader: React.FC<MainHeaderProps> = ({
@@ -15,7 +16,8 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   onSelectCompany,
   onNavigateSection,
   onOpenAdmin,
-  onOpenInstitutionModal
+  onOpenInstitutionModal,
+  onOpenTechModal
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -85,6 +87,14 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
                     <Award size={14} />
                   </button>
                 </li>
+                {onOpenTechModal && (
+                  <li className="dropdown-item">
+                    <button onClick={() => { onOpenTechModal(); setMobileMenuOpen(false); }}>
+                      <span style={{ color: 'var(--cbs-red)', fontWeight: 700 }}>Memoria Técnica (Vercel vs WP)</span>
+                      <Cpu size={14} style={{ color: 'var(--cbs-red)' }} />
+                    </button>
+                  </li>
+                )}
               </ul>
             </li>
 
@@ -235,6 +245,23 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
             >
               CUARTELES Y CONTACTO
             </button>
+            {onOpenTechModal && (
+              <button 
+                style={{ 
+                  textAlign: 'left', 
+                  padding: '0.6rem 0', 
+                  fontWeight: 700, 
+                  color: 'var(--cbs-red)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                onClick={() => { onOpenTechModal(); setMobileMenuOpen(false); }}
+              >
+                <Cpu size={16} />
+                <span>MEMORIA TÉCNICA (VERCEL VS WP)</span>
+              </button>
+            )}
             <button 
               className="btn-primary"
               style={{ marginTop: '0.5rem', justifyContent: 'center' }}

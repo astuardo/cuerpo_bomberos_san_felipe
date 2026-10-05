@@ -19,6 +19,7 @@ import { NewsDetailModal } from './components/common/NewsDetailModal';
 import { InstitutionModal } from './components/common/InstitutionModal';
 import { CooperarModal } from './components/common/CooperarModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { TechComparisonModal } from './components/common/TechComparisonModal';
 
 // Datos de respaldo
 import { 
@@ -47,6 +48,7 @@ export const App: React.FC = () => {
   const [cooperarOpen, setCooperarOpen] = useState(false);
   const [alertModalOpen, setAlertModalOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [techModalOpen, setTechModalOpen] = useState(false);
 
   // Estado del Administrador / Encargado de Prensa
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
@@ -388,6 +390,7 @@ export const App: React.FC = () => {
       <Topbar 
         onOpenCooperar={() => setCooperarOpen(true)}
         onNavigateSection={handleNavigateSection}
+        onOpenTechModal={() => setTechModalOpen(true)}
       />
 
       {/* 2. Header Principal con Logo y Menú */}
@@ -397,6 +400,7 @@ export const App: React.FC = () => {
         onNavigateSection={handleNavigateSection}
         onOpenAdmin={() => setAdminOpen(true)}
         onOpenInstitutionModal={() => setInstitutionOpen(true)}
+        onOpenTechModal={() => setTechModalOpen(true)}
       />
 
       {/* 3. Ticker de Alerta Activa en Vivo */}
@@ -448,6 +452,7 @@ export const App: React.FC = () => {
         companies={companies}
         onSelectCompany={(comp) => setSelectedCompany(comp)}
         onOpenCooperar={() => setCooperarOpen(true)}
+        onOpenTechModal={() => setTechModalOpen(true)}
       />
 
       {/* 13. Botón Flotante Móvil de Emergencia (132) */}
@@ -473,6 +478,10 @@ export const App: React.FC = () => {
 
       {cooperarOpen && (
         <CooperarModal onClose={() => setCooperarOpen(false)} />
+      )}
+
+      {techModalOpen && (
+        <TechComparisonModal onClose={() => setTechModalOpen(false)} />
       )}
 
       {/* Modal Oficial de Alerta de Emergencia */}

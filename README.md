@@ -26,6 +26,7 @@ Este proyecto implementa el sitio web oficial y portal autoadministrable para el
      * **7ª Cía. San Felipe:** Especialistas en **Rescate Agreste y de Montaña**.
    * **Tu Cuartel Más Cercano:** Mapa interactivo con la ubicación geográfica de los cuarteles y el Cuartel General en Merced 832.
    * **Footer Corporativo Rojo:** Teléfonos de la Central de Despacho (34 251 8817 / 132), redes y accesos normativos.
+   * **Memoria Técnica y Comparativa Web:** Módulo público e imprimible en PDF con el informe comparativo completo (Vercel Edge vs. WordPress), accesible desde la barra superior, el menú Institución y el footer.
 
 ---
 

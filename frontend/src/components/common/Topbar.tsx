@@ -4,9 +4,10 @@ import { Phone, Instagram, Facebook, HeartHandshake } from 'lucide-react';
 interface TopbarProps {
   onOpenCooperar: () => void;
   onNavigateSection: (sectionId: string) => void;
+  onOpenTechModal?: () => void;
 }
 
-export const Topbar: React.FC<TopbarProps> = ({ onOpenCooperar, onNavigateSection }) => {
+export const Topbar: React.FC<TopbarProps> = ({ onOpenCooperar, onNavigateSection, onOpenTechModal }) => {
   return (
     <div className="topbar">
       <div className="container topbar-content">
@@ -48,6 +49,18 @@ export const Topbar: React.FC<TopbarProps> = ({ onOpenCooperar, onNavigateSectio
                 Noticias
               </button>
             </li>
+            {onOpenTechModal && (
+              <li>
+                <button 
+                  className="topbar-link"
+                  onClick={onOpenTechModal}
+                  style={{ color: '#FFE600', fontWeight: 700 }}
+                  title="Memoria Técnica Institucional: Vercel vs WordPress"
+                >
+                  ⚡ Memoria Técnica
+                </button>
+              </li>
+            )}
             <li>
               <a 
                 href="https://www.bomberos.cl/cuerpo-de-bomberos-de-san-felipe" 
