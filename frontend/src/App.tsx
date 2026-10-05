@@ -164,6 +164,27 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // Bloquear scroll del fondo cuando cualquier modal esté abierto
+  const isAnyModalOpen = Boolean(
+    selectedCompany || 
+    selectedNews || 
+    institutionOpen || 
+    cooperarOpen || 
+    alertModalOpen || 
+    adminOpen || 
+    techModalOpen
+  );
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isAnyModalOpen]);
+
   // Navegación entre secciones
   const handleNavigateSection = (sectionId: string) => {
     if (sectionId === 'inicio') {
