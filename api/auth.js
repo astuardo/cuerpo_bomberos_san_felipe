@@ -17,7 +17,7 @@ export function hashPassword(plainText) {
 
 export function verifyPassword(inputPlain, storedPassword) {
   if (!inputPlain || !storedPassword) return false;
-  
+
   // 1. Verificación con HMAC si AUTH_SECRET está configurado en Vercel
   if (AUTH_SECRET) {
     const hmacHash = crypto.createHmac('sha256', AUTH_SECRET).update(inputPlain).digest('hex');
@@ -28,15 +28,26 @@ export function verifyPassword(inputPlain, storedPassword) {
   const sha256Hash = crypto.createHash('sha256').update(inputPlain).digest('hex');
   if (storedPassword === sha256Hash) return true;
 
-  // 3. Fallback directo si existiese en texto claro
+  // 3. Fallback directo si existiese en texto claro.
   return storedPassword === inputPlain;
 }
+
+const INITIAL_USER_HASHES = {
+  "usr-admin": "afc8d7fd5abbe616265ce6941dfa964092e3d530949194539e200fa8bdb1ac3c",
+  "usr-comandancia": "3c5ecde5a00733ca261b08246b7da6e3cd0b169d59ade45e4a3613cd0262f280",
+  "usr-cia-1": "66d36647236673601bdaf85c19e204d6a5c9f546d164368ce98f700539a92916",
+  "usr-cia-2": "a4c327cb393ef9dd1348fd1300b4c7574be2ba658a064f49c3274f2675287295",
+  "usr-cia-3": "fbac9da981e61e1c3147d65357dbaeb640e822c6310be2a39fcc889fcf2d81bd",
+  "usr-cia-4": "b12c2684af39ecbc6ddc1c5cdb223fe9f33885d98446a40b39cdd1f68d480cc9",
+  "usr-cia-5": "8bac1833e413ca851a14fcb2af6b593d5954fa418abdab0874f43c40baeab523",
+  "usr-cia-6": "0a7cfa160934a32ed4103f40cde40f33792406583615ddf66688f57442f645ce",
+  "usr-cia-7": "89738b70acd71c8993d2130322550a85d6a39e21a163ed88ad4b785a232abae1"
+};
 
 export const DEFAULT_USERS = [
   {
     id: "usr-admin",
     username: "admin",
-    password: "afc8d7fd5abbe616265ce6941dfa964092e3d530949194539e200fa8bdb1ac3c",
     name: "Superintendencia y Directorio General",
     role: "SUPERADMIN",
     companyId: null,
@@ -47,7 +58,6 @@ export const DEFAULT_USERS = [
   {
     id: "usr-comandancia",
     username: "comandancia",
-    password: "3c5ecde5a00733ca261b08246b7da6e3cd0b169d59ade45e4a3613cd0262f280",
     name: "Comandancia y Central de Comunicaciones",
     role: "COMANDANCIA",
     companyId: null,
@@ -58,7 +68,6 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-1",
     username: "cia1",
-    password: "66d36647236673601bdaf85c19e204d6a5c9f546d164368ce98f700539a92916",
     name: "1ª Cía. Bomba Aconcagua",
     role: "COMPANY_ADMIN",
     companyId: "1",
@@ -69,7 +78,6 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-2",
     username: "cia2",
-    password: "a4c327cb393ef9dd1348fd1300b4c7574be2ba658a064f49c3274f2675287295",
     name: "2ª Cía. La Internacional",
     role: "COMPANY_ADMIN",
     companyId: "2",
@@ -80,7 +88,6 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-3",
     username: "cia3",
-    password: "fbac9da981e61e1c3147d65357dbaeb640e822c6310be2a39fcc889fcf2d81bd",
     name: "3ª Cía. San Felipe",
     role: "COMPANY_ADMIN",
     companyId: "3",
@@ -91,7 +98,6 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-4",
     username: "cia4",
-    password: "b12c2684af39ecbc6ddc1c5cdb223fe9f33885d98446a40b39cdd1f68d480cc9",
     name: "4ª Cía. Bomba Almendral",
     role: "COMPANY_ADMIN",
     companyId: "4",
@@ -102,7 +108,6 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-5",
     username: "cia5",
-    password: "8bac1833e413ca851a14fcb2af6b593d5954fa418abdab0874f43c40baeab523",
     name: "5ª Cía. Bomba Curimón",
     role: "COMPANY_ADMIN",
     companyId: "5",
@@ -113,7 +118,6 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-6",
     username: "cia6",
-    password: "0a7cfa160934a32ed4103f40cde40f33792406583615ddf66688f57442f645ce",
     name: "6ª Cía. Bomba Panquehue (GERSA)",
     role: "COMPANY_ADMIN",
     companyId: "6",
@@ -124,7 +128,6 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-7",
     username: "cia7",
-    password: "89738b70acd71c8993d2130322550a85d6a39e21a163ed88ad4b785a232abae1",
     name: "7ª Cía. Rescate Agreste y Montaña",
     role: "COMPANY_ADMIN",
     companyId: "7",
@@ -132,7 +135,10 @@ export const DEFAULT_USERS = [
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z"
   }
-];
+].map(u => ({
+  ...u,
+  password: INITIAL_USER_HASHES[u.id] || DEFAULT_TEMP_HASH
+}));
 
 let inMemoryUsers = [...DEFAULT_USERS];
 
@@ -311,7 +317,7 @@ export default async function handler(req, res) {
 
     return res.status(401).json({
       success: false,
-      message: 'Credenciales inválidas. Compruebe usuario y contraseña.'
+      message: 'Credenciales inválidas. Compruebe usuario y/o contraseña.'
     });
 
   } catch (err) {
