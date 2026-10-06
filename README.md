@@ -74,8 +74,8 @@ npm run dev
 
 En el panel del proyecto en **Vercel ➔ Settings ➔ Environment Variables**, configurar:
 
-| Variable | Descripción | Ejemplo / Valor |
+| Variable | Descripción | Configuración |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | Cadena de conexión PostgreSQL (Neon Serverless) | `postgresql://user:pass@ep-...neon.tech/neondb?sslmode=require` |
-| `AUTH_SECRET` | Frase secreta (*Pepper Key*) para hashing HMAC-SHA256 de contraseñas | `cbsf_tu_frase_secreta_institucional_aleatoria_2026` |
+| `DATABASE_URL` | Cadena de conexión PostgreSQL (Neon Serverless) | Copiar desde el panel de Neon Console |
+| `AUTH_SECRET` | Frase de seguridad para sellar hashes de contraseñas | Definir una cadena privada en Vercel |
 

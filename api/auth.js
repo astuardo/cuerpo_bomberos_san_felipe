@@ -3,23 +3,28 @@ import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-const AUTH_SECRET = process.env.AUTH_SECRET || 'cbsf_institucional_secret_key_2026';
+const AUTH_SECRET = process.env.AUTH_SECRET || '';
 
 export const DEFAULT_TEMP_HASH = '6f837a24d2eebc3cd85d2ffacacdc1cb219fe388d843461f48434231965b2154';
 
 export function hashPassword(plainText) {
   if (!plainText) return '';
-  return crypto.createHmac('sha256', AUTH_SECRET).update(plainText).digest('hex');
+  if (AUTH_SECRET) {
+    return crypto.createHmac('sha256', AUTH_SECRET).update(plainText).digest('hex');
+  }
+  return crypto.createHash('sha256').update(plainText).digest('hex');
 }
 
 export function verifyPassword(inputPlain, storedPassword) {
   if (!inputPlain || !storedPassword) return false;
   
-  // 1. Verificación primaria: HMAC-SHA256 con AUTH_SECRET de Vercel/entorno
-  const hmacHash = hashPassword(inputPlain);
-  if (storedPassword === hmacHash) return true;
+  // 1. Verificación con HMAC si AUTH_SECRET está configurado en Vercel
+  if (AUTH_SECRET) {
+    const hmacHash = crypto.createHmac('sha256', AUTH_SECRET).update(inputPlain).digest('hex');
+    if (storedPassword === hmacHash) return true;
+  }
 
-  // 2. Verificación secundaria: SHA-256 estándar (compatibilidad con semillas iniciales de BD)
+  // 2. Verificación estándar con SHA-256
   const sha256Hash = crypto.createHash('sha256').update(inputPlain).digest('hex');
   if (storedPassword === sha256Hash) return true;
 

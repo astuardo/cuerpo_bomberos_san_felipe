@@ -33,22 +33,27 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Password hashing helpers
-const AUTH_SECRET = process.env.AUTH_SECRET || 'cbsf_institucional_secret_key_2026';
+const AUTH_SECRET = process.env.AUTH_SECRET || '';
 const DEFAULT_TEMP_HASH = '6f837a24d2eebc3cd85d2ffacacdc1cb219fe388d843461f48434231965b2154';
 
 const hashPassword = (plain) => {
   if (!plain) return '';
-  return crypto.createHmac('sha256', AUTH_SECRET).update(plain).digest('hex');
+  if (AUTH_SECRET) {
+    return crypto.createHmac('sha256', AUTH_SECRET).update(plain).digest('hex');
+  }
+  return crypto.createHash('sha256').update(plain).digest('hex');
 };
 
 const verifyPassword = (inputPlain, storedPassword) => {
   if (!inputPlain || !storedPassword) return false;
   
-  // 1. Verificación primaria: HMAC-SHA256 con AUTH_SECRET
-  const hmacHash = hashPassword(inputPlain);
-  if (storedPassword === hmacHash) return true;
+  // 1. Verificación con HMAC si AUTH_SECRET está configurado
+  if (AUTH_SECRET) {
+    const hmacHash = crypto.createHmac('sha256', AUTH_SECRET).update(inputPlain).digest('hex');
+    if (storedPassword === hmacHash) return true;
+  }
 
-  // 2. Verificación secundaria: SHA-256 estándar
+  // 2. Verificación estándar con SHA-256
   const sha256Hash = crypto.createHash('sha256').update(inputPlain).digest('hex');
   if (storedPassword === sha256Hash) return true;
 
