@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { DEFAULT_USERS } from './auth.js';
+import { DEFAULT_USERS, hashPassword, DEFAULT_TEMP_HASH } from './auth.js';
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         if (companyId !== undefined) inMemoryUsers[idx].companyId = companyId || null;
 
         if (resetPassword || password) {
-          inMemoryUsers[idx].password = password || 'bombero2026';
+          inMemoryUsers[idx].password = password ? hashPassword(password) : DEFAULT_TEMP_HASH;
           inMemoryUsers[idx].mustChangePassword = true;
         }
 
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       const newUser = {
         id: 'usr-' + Date.now(),
         username: cleanUser,
-        password: password || 'bombero2026',
+        password: password ? hashPassword(password) : DEFAULT_TEMP_HASH,
         name,
         role,
         companyId: companyId || null,
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
 
       if (id) {
         if (resetPassword || password) {
-          const pass = password || 'bombero2026';
+          const pass = password ? hashPassword(password) : DEFAULT_TEMP_HASH;
           await sql`
             UPDATE users 
             SET name = COALESCE(${name}, name),
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
 
       const cleanUser = username.toLowerCase().trim();
       const newId = 'usr-' + Date.now();
-      const pass = password || 'bombero2026';
+      const pass = password ? hashPassword(password) : DEFAULT_TEMP_HASH;
 
       await sql`
         INSERT INTO users (id, username, password, name, role, company_id, must_change_password)

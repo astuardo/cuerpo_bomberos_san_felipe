@@ -1,12 +1,37 @@
 import { neon } from '@neondatabase/serverless';
 
+import crypto from 'crypto';
+
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const AUTH_SECRET = process.env.AUTH_SECRET || 'cbsf_institucional_secret_key_2026';
+
+export const DEFAULT_TEMP_HASH = '6f837a24d2eebc3cd85d2ffacacdc1cb219fe388d843461f48434231965b2154';
+
+export function hashPassword(plainText) {
+  if (!plainText) return '';
+  return crypto.createHmac('sha256', AUTH_SECRET).update(plainText).digest('hex');
+}
+
+export function verifyPassword(inputPlain, storedPassword) {
+  if (!inputPlain || !storedPassword) return false;
+  
+  // 1. Verificación primaria: HMAC-SHA256 con AUTH_SECRET de Vercel/entorno
+  const hmacHash = hashPassword(inputPlain);
+  if (storedPassword === hmacHash) return true;
+
+  // 2. Verificación secundaria: SHA-256 estándar (compatibilidad con semillas iniciales de BD)
+  const sha256Hash = crypto.createHash('sha256').update(inputPlain).digest('hex');
+  if (storedPassword === sha256Hash) return true;
+
+  // 3. Fallback directo si existiese en texto claro
+  return storedPassword === inputPlain;
+}
 
 export const DEFAULT_USERS = [
   {
     id: "usr-admin",
     username: "admin",
-    password: "bomberosanfelipe2026",
+    password: "afc8d7fd5abbe616265ce6941dfa964092e3d530949194539e200fa8bdb1ac3c",
     name: "Superintendencia y Directorio General",
     role: "SUPERADMIN",
     companyId: null,
@@ -17,7 +42,7 @@ export const DEFAULT_USERS = [
   {
     id: "usr-comandancia",
     username: "comandancia",
-    password: "comandancia2026",
+    password: "3c5ecde5a00733ca261b08246b7da6e3cd0b169d59ade45e4a3613cd0262f280",
     name: "Comandancia y Central de Comunicaciones",
     role: "COMANDANCIA",
     companyId: null,
@@ -28,7 +53,7 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-1",
     username: "cia1",
-    password: "bombaaconcagua1",
+    password: "66d36647236673601bdaf85c19e204d6a5c9f546d164368ce98f700539a92916",
     name: "1ª Cía. Bomba Aconcagua",
     role: "COMPANY_ADMIN",
     companyId: "1",
@@ -39,7 +64,7 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-2",
     username: "cia2",
-    password: "internacional2",
+    password: "a4c327cb393ef9dd1348fd1300b4c7574be2ba658a064f49c3274f2675287295",
     name: "2ª Cía. La Internacional",
     role: "COMPANY_ADMIN",
     companyId: "2",
@@ -50,7 +75,7 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-3",
     username: "cia3",
-    password: "sanfelipe3",
+    password: "fbac9da981e61e1c3147d65357dbaeb640e822c6310be2a39fcc889fcf2d81bd",
     name: "3ª Cía. San Felipe",
     role: "COMPANY_ADMIN",
     companyId: "3",
@@ -61,7 +86,7 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-4",
     username: "cia4",
-    password: "almendral4",
+    password: "b12c2684af39ecbc6ddc1c5cdb223fe9f33885d98446a40b39cdd1f68d480cc9",
     name: "4ª Cía. Bomba Almendral",
     role: "COMPANY_ADMIN",
     companyId: "4",
@@ -72,7 +97,7 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-5",
     username: "cia5",
-    password: "curimon5",
+    password: "8bac1833e413ca851a14fcb2af6b593d5954fa418abdab0874f43c40baeab523",
     name: "5ª Cía. Bomba Curimón",
     role: "COMPANY_ADMIN",
     companyId: "5",
@@ -83,7 +108,7 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-6",
     username: "cia6",
-    password: "panquehue6",
+    password: "0a7cfa160934a32ed4103f40cde40f33792406583615ddf66688f57442f645ce",
     name: "6ª Cía. Bomba Panquehue (GERSA)",
     role: "COMPANY_ADMIN",
     companyId: "6",
@@ -94,7 +119,7 @@ export const DEFAULT_USERS = [
   {
     id: "usr-cia-7",
     username: "cia7",
-    password: "sanfelipe7",
+    password: "89738b70acd71c8993d2130322550a85d6a39e21a163ed88ad4b785a232abae1",
     name: "7ª Cía. Rescate Agreste y Montaña",
     role: "COMPANY_ADMIN",
     companyId: "7",
@@ -136,11 +161,11 @@ export default async function handler(req, res) {
         return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
       }
 
-      if (currentPassword && inMemoryUsers[idx].password !== currentPassword) {
+      if (currentPassword && !verifyPassword(currentPassword, inMemoryUsers[idx].password)) {
         return res.status(401).json({ success: false, message: 'La contraseña actual no es válida.' });
       }
 
-      inMemoryUsers[idx].password = newPassword;
+      inMemoryUsers[idx].password = hashPassword(newPassword);
       inMemoryUsers[idx].mustChangePassword = false;
       inMemoryUsers[idx].updatedAt = new Date().toISOString();
 
@@ -163,7 +188,7 @@ export default async function handler(req, res) {
     const cleanUser = (username || '').toLowerCase().trim();
     const user = inMemoryUsers.find(u => u.username.toLowerCase() === cleanUser);
 
-    if (user && user.password === password) {
+    if (user && verifyPassword(password, user.password)) {
       return res.json({
         success: true,
         token: 'cbsf_auth_' + Buffer.from(user.username + ':' + Date.now()).toString('base64'),
@@ -228,13 +253,14 @@ export default async function handler(req, res) {
       }
 
       const u = rows[0];
-      if (currentPassword && u.password !== currentPassword) {
+      if (currentPassword && !verifyPassword(currentPassword, u.password)) {
         return res.status(401).json({ success: false, message: 'La contraseña actual no es correcta.' });
       }
 
+      const hashedNew = hashPassword(newPassword);
       await sql`
         UPDATE users 
-        SET password = ${newPassword}, must_change_password = FALSE, updated_at = CURRENT_TIMESTAMP
+        SET password = ${hashedNew}, must_change_password = FALSE, updated_at = CURRENT_TIMESTAMP
         WHERE id = ${u.id};
       `;
 
@@ -262,7 +288,7 @@ export default async function handler(req, res) {
       LIMIT 1;
     `;
 
-    if (rows.length > 0 && rows[0].password === password) {
+    if (rows.length > 0 && verifyPassword(password, rows[0].password)) {
       const u = rows[0];
       return res.json({
         success: true,

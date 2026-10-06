@@ -24,5 +24,11 @@ Thumbs.db
 logs/
 *.log
 
+# Variables de Entorno y Secretos
+.env
+.env.*
+!.env.example
+
 # Vercel
 .vercel/
+

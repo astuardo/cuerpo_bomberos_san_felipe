@@ -52,8 +52,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onSaveStats
 }) => {
   // Login State
-  const [loginUsername, setLoginUsername] = useState('admin');
-  const [loginPassword, setLoginPassword] = useState('bomberosanfelipe2026');
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -315,8 +315,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleResetUserPassword = async (user: SystemUser) => {
     const tempPass = window.prompt(
-      `Ingresa la nueva contraseña temporal para "${user.username}" (${user.name}):\n(Al iniciar sesión, el sistema le exigirá cambio obligatorio)`,
-      'bombero2026'
+      `Ingresa la nueva contraseña temporal para "${user.username}" (${user.name}):\n(Al iniciar sesión, el sistema le exigirá cambio obligatorio)`
     );
     if (!tempPass) return;
     if (tempPass.trim().length < 6) {
@@ -2399,7 +2398,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           companyId: '1',
                           mustChangePassword: true
                         });
-                        setNewUserPassword('bombero2026');
+                        setNewUserPassword('');
                         setUserFormError('');
                         setUserModalOpen(true);
                       }}
@@ -2625,7 +2624,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               className="admin-input" 
                               value={newUserPassword}
                               onChange={(e) => setNewUserPassword(e.target.value)}
-                              placeholder="Mínimo 6 caracteres (ej. bombero2026)"
+                              placeholder="Mínimo 6 caracteres"
                             />
                             <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
                               Al ingresar por primera vez, el sistema le exigirá definir su propia clave personal.

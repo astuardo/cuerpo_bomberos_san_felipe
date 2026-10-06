@@ -3,6 +3,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,6 +31,30 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+
+// Password hashing helpers
+const AUTH_SECRET = process.env.AUTH_SECRET || 'cbsf_institucional_secret_key_2026';
+const DEFAULT_TEMP_HASH = '6f837a24d2eebc3cd85d2ffacacdc1cb219fe388d843461f48434231965b2154';
+
+const hashPassword = (plain) => {
+  if (!plain) return '';
+  return crypto.createHmac('sha256', AUTH_SECRET).update(plain).digest('hex');
+};
+
+const verifyPassword = (inputPlain, storedPassword) => {
+  if (!inputPlain || !storedPassword) return false;
+  
+  // 1. Verificación primaria: HMAC-SHA256 con AUTH_SECRET
+  const hmacHash = hashPassword(inputPlain);
+  if (storedPassword === hmacHash) return true;
+
+  // 2. Verificación secundaria: SHA-256 estándar
+  const sha256Hash = crypto.createHash('sha256').update(inputPlain).digest('hex');
+  if (storedPassword === sha256Hash) return true;
+
+  // 3. Fallback directo si existiese en texto claro
+  return storedPassword === inputPlain;
+};
 
 // Helper to read DB
 const readDB = () => {
@@ -61,7 +86,7 @@ const handleAuthLogin = (req, res) => {
 
   const foundUser = users.find(u => u.username.toLowerCase() === (username || '').toLowerCase().trim());
 
-  if (foundUser && foundUser.password === password) {
+  if (foundUser && verifyPassword(password, foundUser.password)) {
     return res.json({
       success: true,
       token: 'cbsf_token_' + Buffer.from(foundUser.username + ':' + Date.now()).toString('base64'),
@@ -77,7 +102,7 @@ const handleAuthLogin = (req, res) => {
   }
 
   // Fallback con usuario maestro legacy si aún no estuviera en array
-  if (db.admin && username === db.admin.username && password === db.admin.password) {
+  if (db.admin && username === db.admin.username && verifyPassword(password, db.admin.password)) {
     return res.json({
       success: true,
       token: 'cbsf_admin_token_2026',
@@ -122,17 +147,18 @@ app.post('/api/auth/change-password', (req, res) => {
   }
 
   // Si se envió currentPassword, validarla
-  if (currentPassword && users[idx].password !== currentPassword) {
+  if (currentPassword && !verifyPassword(currentPassword, users[idx].password)) {
     return res.status(401).json({ success: false, message: 'La contraseña actual ingresada es incorrecta.' });
   }
 
-  users[idx].password = newPassword;
+  const hashedNew = hashPassword(newPassword);
+  users[idx].password = hashedNew;
   users[idx].mustChangePassword = false;
   users[idx].updatedAt = new Date().toISOString();
 
   // Si es admin principal, mantener sincronizado db.admin
   if (users[idx].username === 'admin') {
-    db.admin.password = newPassword;
+    db.admin.password = hashedNew;
   }
 
   db.users = users;
@@ -187,7 +213,7 @@ app.post('/api/users', (req, res) => {
     if (companyId !== undefined) users[idx].companyId = companyId || null;
 
     if (resetPassword || password) {
-      users[idx].password = password || 'bombero2026';
+      users[idx].password = password ? hashPassword(password) : DEFAULT_TEMP_HASH;
       users[idx].mustChangePassword = true; // Exige cambiarla en su próximo login
     }
 
@@ -222,7 +248,7 @@ app.post('/api/users', (req, res) => {
   const newUser = {
     id: 'usr-' + Date.now(),
     username: cleanUsername,
-    password: password || 'bombero2026',
+    password: password ? hashPassword(password) : DEFAULT_TEMP_HASH,
     name,
     role,
     companyId: companyId || null,

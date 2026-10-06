@@ -67,3 +67,15 @@ npm install
 npm run dev
 # Portal web disponible en http://localhost:3000
 ```
+
+---
+
+## ⚙️ Variables de Entorno en Vercel (Producción)
+
+En el panel del proyecto en **Vercel ➔ Settings ➔ Environment Variables**, configurar:
+
+| Variable | Descripción | Ejemplo / Valor |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | Cadena de conexión PostgreSQL (Neon Serverless) | `postgresql://user:pass@ep-...neon.tech/neondb?sslmode=require` |
+| `AUTH_SECRET` | Frase secreta (*Pepper Key*) para hashing HMAC-SHA256 de contraseñas | `cbsf_tu_frase_secreta_institucional_aleatoria_2026` |
+
