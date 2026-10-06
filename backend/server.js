@@ -53,22 +53,41 @@ const writeDB = (data) => {
   }
 };
 
-// ================= Rutas de Autenticación =================
-app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
+// ================= Rutas de Autenticación y Usuarios =================
+const handleAuthLogin = (req, res) => {
+  const { username, password } = req.body || {};
   const db = readDB();
+  const users = db.users || [];
 
-  if (
-    username === db.admin.username &&
-    password === db.admin.password
-  ) {
+  const foundUser = users.find(u => u.username.toLowerCase() === (username || '').toLowerCase().trim());
+
+  if (foundUser && foundUser.password === password) {
+    return res.json({
+      success: true,
+      token: 'cbsf_token_' + Buffer.from(foundUser.username + ':' + Date.now()).toString('base64'),
+      user: {
+        id: foundUser.id,
+        username: foundUser.username,
+        name: foundUser.name,
+        role: foundUser.role,
+        companyId: foundUser.companyId || null,
+        mustChangePassword: foundUser.mustChangePassword === true
+      }
+    });
+  }
+
+  // Fallback con usuario maestro legacy si aún no estuviera en array
+  if (db.admin && username === db.admin.username && password === db.admin.password) {
     return res.json({
       success: true,
       token: 'cbsf_admin_token_2026',
       user: {
+        id: 'usr-admin',
         username: db.admin.username,
-        name: db.admin.name,
-        role: db.admin.role
+        name: db.admin.name || 'Superintendencia',
+        role: 'SUPERADMIN',
+        companyId: null,
+        mustChangePassword: false
       }
     });
   }
@@ -77,6 +96,178 @@ app.post('/api/auth/login', (req, res) => {
     success: false,
     message: 'Credenciales inválidas. Compruebe usuario y contraseña.'
   });
+};
+
+app.post('/api/auth', handleAuthLogin);
+app.post('/api/auth/login', handleAuthLogin);
+
+// Cambio obligatorio o voluntario de contraseña
+app.post('/api/auth/change-password', (req, res) => {
+  const { username, currentPassword, newPassword } = req.body || {};
+
+  if (!username || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Faltan parámetros obligatorios.' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+  }
+
+  const db = readDB();
+  let users = db.users || [];
+  const idx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase().trim());
+
+  if (idx === -1) {
+    return res.status(404).json({ success: false, message: 'Usuario no encontrado en la base de datos.' });
+  }
+
+  // Si se envió currentPassword, validarla
+  if (currentPassword && users[idx].password !== currentPassword) {
+    return res.status(401).json({ success: false, message: 'La contraseña actual ingresada es incorrecta.' });
+  }
+
+  users[idx].password = newPassword;
+  users[idx].mustChangePassword = false;
+  users[idx].updatedAt = new Date().toISOString();
+
+  // Si es admin principal, mantener sincronizado db.admin
+  if (users[idx].username === 'admin') {
+    db.admin.password = newPassword;
+  }
+
+  db.users = users;
+  writeDB(db);
+
+  return res.json({
+    success: true,
+    message: 'Contraseña actualizada exitosamente en la base de datos.',
+    user: {
+      id: users[idx].id,
+      username: users[idx].username,
+      name: users[idx].name,
+      role: users[idx].role,
+      companyId: users[idx].companyId || null,
+      mustChangePassword: false
+    }
+  });
+});
+
+// ================= CRUD de Usuarios (Superadmin) =================
+// Listar usuarios
+app.get('/api/users', (req, res) => {
+  const db = readDB();
+  const users = (db.users || []).map(u => ({
+    id: u.id,
+    username: u.username,
+    name: u.name,
+    role: u.role,
+    companyId: u.companyId || null,
+    mustChangePassword: u.mustChangePassword === true,
+    createdAt: u.createdAt,
+    updatedAt: u.updatedAt
+  }));
+  return res.json(users);
+});
+
+// Crear o actualizar usuario / Resetear clave
+app.post('/api/users', (req, res) => {
+  const { id, username, name, role, companyId, password, resetPassword } = req.body || {};
+  const db = readDB();
+  let users = db.users || [];
+
+  if (id) {
+    // Edición de usuario existente
+    const idx = users.findIndex(u => u.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+    }
+
+    if (name) users[idx].name = name;
+    if (role) users[idx].role = role;
+    if (companyId !== undefined) users[idx].companyId = companyId || null;
+
+    if (resetPassword || password) {
+      users[idx].password = password || 'bombero2026';
+      users[idx].mustChangePassword = true; // Exige cambiarla en su próximo login
+    }
+
+    users[idx].updatedAt = new Date().toISOString();
+    db.users = users;
+    writeDB(db);
+
+    return res.json({
+      success: true,
+      message: 'Usuario actualizado exitosamente.',
+      user: {
+        id: users[idx].id,
+        username: users[idx].username,
+        name: users[idx].name,
+        role: users[idx].role,
+        companyId: users[idx].companyId,
+        mustChangePassword: users[idx].mustChangePassword
+      }
+    });
+  }
+
+  // Creación de nuevo usuario
+  if (!username || !name || !role) {
+    return res.status(400).json({ success: false, message: 'Faltan campos obligatorios: usuario, nombre y rol.' });
+  }
+
+  const cleanUsername = username.toLowerCase().trim();
+  if (users.some(u => u.username.toLowerCase() === cleanUsername)) {
+    return res.status(400).json({ success: false, message: 'El nombre de usuario ya existe en el sistema.' });
+  }
+
+  const newUser = {
+    id: 'usr-' + Date.now(),
+    username: cleanUsername,
+    password: password || 'bombero2026',
+    name,
+    role,
+    companyId: companyId || null,
+    mustChangePassword: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  users.push(newUser);
+  db.users = users;
+  writeDB(db);
+
+  return res.status(201).json({
+    success: true,
+    message: 'Usuario creado exitosamente en la base de datos.',
+    user: {
+      id: newUser.id,
+      username: newUser.username,
+      name: newUser.name,
+      role: newUser.role,
+      companyId: newUser.companyId,
+      mustChangePassword: newUser.mustChangePassword
+    }
+  });
+});
+
+// Eliminar usuario
+app.delete('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const db = readDB();
+  let users = db.users || [];
+
+  const target = users.find(u => u.id === id);
+  if (!target) {
+    return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+  }
+
+  if (target.username === 'admin') {
+    return res.status(400).json({ success: false, message: 'No se puede eliminar al Superadministrador principal.' });
+  }
+
+  db.users = users.filter(u => u.id !== id);
+  writeDB(db);
+
+  return res.json({ success: true, message: 'Usuario eliminado exitosamente de la base de datos.' });
 });
 
 // ================= Rutas de Noticias =================

@@ -2,9 +2,110 @@
   "admin": {
     "username": "admin",
     "password": "bomberosanfelipe2026",
-    "name": "Encargado de Comunicaciones y Prensa",
-    "role": "Oficial de Relaciones Públicas"
+    "name": "Superintendencia y Directorio General",
+    "role": "SUPERADMIN"
   },
+  "users": [
+    {
+      "id": "usr-admin",
+      "username": "admin",
+      "password": "bomberosanfelipe2026",
+      "name": "Superintendencia y Directorio General",
+      "role": "SUPERADMIN",
+      "companyId": null,
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr-comandancia",
+      "username": "comandancia",
+      "password": "comandancia2026",
+      "name": "Comandancia y Central de Comunicaciones",
+      "role": "COMANDANCIA",
+      "companyId": null,
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr-cia-1",
+      "username": "cia1",
+      "password": "bombaaconcagua1",
+      "name": "1ª Cía. Bomba Aconcagua",
+      "role": "COMPANY_ADMIN",
+      "companyId": "1",
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr-cia-2",
+      "username": "cia2",
+      "password": "internacional2",
+      "name": "2ª Cía. La Internacional",
+      "role": "COMPANY_ADMIN",
+      "companyId": "2",
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr-cia-3",
+      "username": "cia3",
+      "password": "sanfelipe3",
+      "name": "3ª Cía. San Felipe",
+      "role": "COMPANY_ADMIN",
+      "companyId": "3",
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr-cia-4",
+      "username": "cia4",
+      "password": "almendral4",
+      "name": "4ª Cía. Bomba Almendral",
+      "role": "COMPANY_ADMIN",
+      "companyId": "4",
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr-cia-5",
+      "username": "cia5",
+      "password": "curimon5",
+      "name": "5ª Cía. Bomba Curimón",
+      "role": "COMPANY_ADMIN",
+      "companyId": "5",
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr-cia-6",
+      "username": "cia6",
+      "password": "panquehue6",
+      "name": "6ª Cía. Bomba Panquehue (GERSA)",
+      "role": "COMPANY_ADMIN",
+      "companyId": "6",
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "usr-cia-7",
+      "username": "cia7",
+      "password": "sanfelipe7",
+      "name": "7ª Cía. Rescate Agreste y Montaña",
+      "role": "COMPANY_ADMIN",
+      "companyId": "7",
+      "mustChangePassword": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ],
   "alerts": [
     {
       "id": "alert-1",

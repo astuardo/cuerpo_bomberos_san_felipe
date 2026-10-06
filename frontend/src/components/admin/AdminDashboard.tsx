@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, Lock, LogOut, Plus, Trash2, Edit3, AlertTriangle, 
   FileText, Save, ShieldAlert, UploadCloud, Check, Loader2, Image as ImageIcon,
-  Sliders, ArrowUp, ArrowDown, Building2, Landmark, BarChart3, Users, MapPin
+  Sliders, ArrowUp, ArrowDown, Building2, Landmark, BarChart3, Users, MapPin,
+  Key, UserPlus, RefreshCw
 } from 'lucide-react';
-import { NewsItem, EmergencyAlert, AdminUser, HeroSlide, Company, InstitutionData, StatsData } from '../../types';
+import { NewsItem, EmergencyAlert, AdminUser, HeroSlide, Company, InstitutionData, StatsData, SystemUser } from '../../types';
 import { INITIAL_INSTITUTION, INITIAL_STATS } from '../../data/initialData';
 
 interface AdminDashboardProps {
@@ -56,14 +57,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [loginError, setLoginError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Tabs: 'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide' | 'companies' | 'edit-company' | 'institution' | 'stats'
+  // Tabs: 'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide' | 'companies' | 'edit-company' | 'institution' | 'stats' | 'users'
   const [activeTab, setActiveTab] = useState<
-    'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide' | 'companies' | 'edit-company' | 'institution' | 'stats'
+    'news' | 'alert' | 'edit-news' | 'slides' | 'edit-slide' | 'companies' | 'edit-company' | 'institution' | 'stats' | 'users'
   >('news');
   const [editingItem, setEditingItem] = useState<Partial<NewsItem> | null>(null);
   const [editingSlide, setEditingSlide] = useState<Partial<HeroSlide> | null>(null);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [companyUnitsInput, setCompanyUnitsInput] = useState<string>('');
+
+  // Helpers de Roles Institucionales
+  const isSuperadmin = currentUser?.role === 'SUPERADMIN';
+  const isComandancia = currentUser?.role === 'COMANDANCIA';
+  const isCompanyAdmin = currentUser?.role === 'COMPANY_ADMIN';
+  const myCompany = companies.find(c => c.id === currentUser?.companyId || c.number.toString() === currentUser?.companyId);
+
+  // Estados para Cambio Obligatorio de Contraseña
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Estados para Gestión de Usuarios (Superadmin)
+  const [systemUsers, setSystemUsers] = useState<SystemUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<Partial<SystemUser> | null>(null);
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [userFormError, setUserFormError] = useState('');
   
   // Persistencia de Borrador de Noticia
   const DRAFT_NEWS_KEY = 'cbsf_news_draft';
@@ -156,6 +177,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Cargar usuarios para Superadmin
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const data = await res.json();
+        setSystemUsers(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('Error al cargar usuarios:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'users' && isSuperadmin) {
+      fetchUsers();
+    }
+  }, [activeTab, isSuperadmin]);
+
   // Handle Login seguro contra la API
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,13 +213,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       });
       const data = await res.json();
 
-      if (res.ok && data.success) {
-        onLogin({
+      if (res.ok && data.success && data.user) {
+        const userData: AdminUser = {
+          id: data.user.id,
           username: data.user.username,
           name: data.user.name,
           role: data.user.role,
+          companyId: data.user.companyId || null,
+          mustChangePassword: data.user.mustChangePassword === true,
           token: data.token
-        });
+        };
+        onLogin(userData);
+        if (userData.role === 'COMPANY_ADMIN') {
+          setActiveTab('news');
+        }
       } else {
         setLoginError(data.message || 'Credenciales inválidas. Compruebe usuario y contraseña.');
       }
@@ -184,6 +234,136 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setLoginError('Error de conexión con el servidor de autenticación.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Cambio obligatorio o voluntario de contraseña
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPasswordInput.length < 6) {
+      setChangePasswordError('La nueva contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    if (newPasswordInput !== confirmPasswordInput) {
+      setChangePasswordError('Las contraseñas no coinciden. Por favor verifícalas.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    setChangePasswordError('');
+
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'change-password',
+          username: currentUser?.username,
+          newPassword: newPasswordInput
+        })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        window.alert('¡Contraseña actualizada exitosamente en la base de datos!');
+        setNewPasswordInput('');
+        setConfirmPasswordInput('');
+        if (currentUser) {
+          onLogin({
+            ...currentUser,
+            mustChangePassword: false
+          });
+        }
+      } else {
+        setChangePasswordError(data.message || 'Error al actualizar la contraseña en la base de datos.');
+      }
+    } catch {
+      setChangePasswordError('Error de conexión con el servidor.');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  // Operaciones de gestión de usuarios (Superadmin)
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setUserFormError('');
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editingUser,
+          password: newUserPassword || undefined
+        })
+      });
+      const data = await res.json();
+      if (res.ok && (data.success || res.status === 200 || res.status === 201)) {
+        setUserModalOpen(false);
+        setEditingUser(null);
+        setNewUserPassword('');
+        fetchUsers();
+      } else {
+        setUserFormError(data.message || data.error || 'Error al guardar usuario en la base de datos.');
+      }
+    } catch {
+      setUserFormError('Error de conexión con la base de datos.');
+    }
+  };
+
+  const handleResetUserPassword = async (user: SystemUser) => {
+    const tempPass = window.prompt(
+      `Ingresa la nueva contraseña temporal para "${user.username}" (${user.name}):\n(Al iniciar sesión, el sistema le exigirá cambio obligatorio)`,
+      'bombero2026'
+    );
+    if (!tempPass) return;
+    if (tempPass.trim().length < 6) {
+      window.alert('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: user.id,
+          password: tempPass.trim(),
+          resetPassword: true
+        })
+      });
+      const data = await res.json();
+      if (res.ok && (data.success || res.status === 200)) {
+        window.alert(`¡Contraseña restablecida exitosamente para "${user.username}" en la BD!\nSe le solicitará cambiarla en su próximo ingreso.`);
+        fetchUsers();
+      } else {
+        window.alert('Error al resetear contraseña: ' + (data.message || 'Error'));
+      }
+    } catch {
+      window.alert('Error de conexión con la base de datos.');
+    }
+  };
+
+  const handleDeleteUser = async (user: SystemUser) => {
+    if (user.username === 'admin') {
+      window.alert('No se puede eliminar al Superadministrador principal.');
+      return;
+    }
+    const confirm = window.confirm(`¿Estás seguro de eliminar el usuario "${user.username}" (${user.name}) de la base de datos?`);
+    if (!confirm) return;
+
+    try {
+      const res = await fetch(`/api/users?id=${user.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        window.alert('Error: ' + (data.message || data.error || 'No se pudo eliminar'));
+      }
+    } catch {
+      window.alert('Error de conexión con la base de datos.');
     }
   };
 
@@ -542,13 +722,132 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
 
-              <p style={{ fontSize: '0.75rem', color: '#888', textAlign: 'center', marginTop: '1rem' }}>
-                Credencial de demostración: <strong>admin</strong> / <strong>bomberosanfelipe2026</strong>
+              <div style={{ marginTop: '1.25rem', padding: '0.85rem', background: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.78rem', color: '#475569' }}>
+                <strong style={{ color: '#0F172A', display: 'block', marginBottom: '4px' }}>Cuentas Institucionales Base (Base de Datos):</strong>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', marginTop: '6px' }}>
+                  <div>• <strong>admin</strong> (Superadmin)</div>
+                  <div>• <strong>comandancia</strong> (Prensa)</div>
+                  <div>• <strong>cia1</strong> (1ª Cía)</div>
+                  <div>• <strong>cia2</strong> (2ª Cía)</div>
+                  <div>• <strong>cia3</strong> (3ª Cía)</div>
+                  <div>• <strong>cia4</strong> (4ª Cía)</div>
+                  <div>• <strong>cia5</strong> (5ª Cía)</div>
+                  <div>• <strong>cia6</strong> (6ª Cía GERSA)</div>
+                  <div>• <strong>cia7</strong> (7ª Cía Agreste)</div>
+                </div>
+                <div style={{ marginTop: '6px', color: '#B45309', fontSize: '0.74rem' }}>
+                  🔒 <em>En el primer ingreso se solicitará obligatoriamente definir una nueva contraseña personal.</em>
+                </div>
+              </div>
+            </form>
+          </div>
+        ) : currentUser.mustChangePassword ? (
+          /* ========================================================
+             PANTALLA BLOQUEANTE: CAMBIO OBLIGATORIO DE CONTRASEÑA
+             ======================================================== */
+          <div className="admin-modal-body" style={{ maxWidth: '520px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+              <div style={{
+                background: '#FEF3C7',
+                color: '#D97706',
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 0.75rem auto'
+              }}>
+                <Key size={28} />
+              </div>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: '#1E293B', fontSize: '1.25rem' }}>
+                Cambio Obligatorio de Contraseña
+              </h3>
+              <span style={{ 
+                display: 'inline-block',
+                backgroundColor: 'var(--cbs-red)', 
+                color: '#FFFFFF', 
+                fontSize: '0.72rem', 
+                fontWeight: 800, 
+                padding: '2px 8px', 
+                borderRadius: '3px',
+                letterSpacing: '0.5px',
+                marginBottom: '0.75rem'
+              }}>
+                PRIMER INICIO DE SESIÓN · {currentUser.username.toUpperCase()}
+              </span>
+              <p style={{ fontSize: '0.88rem', color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+                Hola, <strong>{currentUser.name}</strong>. Por estrictos protocolos de seguridad institucional del Cuerpo de Bomberos de San Felipe, debes reemplazar tu contraseña temporal por una contraseña personal definitiva para acceder a las funciones del portal.
               </p>
+            </div>
+
+            {changePasswordError && (
+              <div style={{
+                backgroundColor: '#FEF2F2',
+                color: '#DC2626',
+                padding: '0.75rem 1rem',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                marginBottom: '1rem',
+                borderLeft: '4px solid #DC2626'
+              }}>
+                ⚠️ {changePasswordError}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePasswordSubmit}>
+              <div className="admin-form-group">
+                <label className="admin-label">Nueva Contraseña (mínimo 6 caracteres)</label>
+                <input 
+                  type="password"
+                  required
+                  minLength={6}
+                  className="admin-input"
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  placeholder="Ingresa tu nueva clave personal..."
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <label className="admin-label">Confirmar Nueva Contraseña</label>
+                <input 
+                  type="password"
+                  required
+                  minLength={6}
+                  className="admin-input"
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  placeholder="Repite tu nueva clave exactamente..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  style={{ width: '100%', justifyContent: 'center', padding: '0.75rem' }}
+                  disabled={isChangingPassword}
+                >
+                  <Lock size={16} />
+                  <span>{isChangingPassword ? 'Guardando en Base de Datos...' : 'Actualizar Contraseña y Continuar'}</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-outline"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={onLogout}
+                >
+                  <LogOut size={15} />
+                  <span>Cancelar y Salir</span>
+                </button>
+              </div>
             </form>
           </div>
         ) : (
-          /* Si está autenticado: Panel de Administración */
+          /* ========================================================
+             PANEL DE ADMINISTRACIÓN SEGÚN ROL Y PERFIL
+             ======================================================== */
           <div className="admin-modal-body">
             {/* Barra de usuario activo */}
             <div style={{ 
@@ -559,12 +858,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               padding: '0.75rem 1.25rem', 
               borderRadius: '8px',
               marginBottom: '1.5rem',
-              border: '1px solid #ECECEC'
+              border: '1px solid #ECECEC',
+              flexWrap: 'wrap',
+              gap: '0.75rem'
             }}>
               <div>
                 <span style={{ fontSize: '0.8rem', color: '#666' }}>Sesión activa como:</span>
-                <div style={{ fontWeight: 800, color: 'var(--cbs-gray-dark)' }}>
-                  {currentUser.name} ({currentUser.role})
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800, color: 'var(--cbs-gray-dark)' }}>
+                    {currentUser.name}
+                  </span>
+                  <span style={{
+                    backgroundColor: isSuperadmin ? '#DC2626' : (isComandancia ? '#2563EB' : '#15803D'),
+                    color: '#FFFFFF',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '4px'
+                  }}>
+                    {currentUser.role}
+                  </span>
+                  {isCompanyAdmin && myCompany && (
+                    <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 600 }}>
+                      · Cía. Nº {myCompany.number}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -576,7 +894,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   alignItems: 'center', 
                   gap: '4px',
                   fontWeight: 700,
-                  fontSize: '0.85rem'
+                  fontSize: '0.85rem',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer'
                 }}
               >
                 <LogOut size={16} />
@@ -584,7 +905,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
 
-            {/* Pestañas de gestión */}
+            {/* Pestañas de gestión filtradas por Rol */}
             <div style={{ 
               display: 'flex', 
               gap: '0.5rem', 
@@ -593,53 +914,95 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               overflowX: 'auto',
               paddingBottom: '4px'
             }}>
+              {/* Noticias: Todos los roles */}
               <button
                 className={`tab-btn ${activeTab === 'news' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('news'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
               >
                 <FileText size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                Noticias ({news.length})
+                {isCompanyAdmin ? `Noticias de mi Cía` : `Noticias (${news.length})`}
               </button>
 
-              <button
-                className={`tab-btn ${activeTab === 'alert' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('alert'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
-              >
-                <AlertTriangle size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                Alerta en Portada
-              </button>
+              {/* Alertas: Solo Superadmin y Comandancia */}
+              {(isSuperadmin || isComandancia) && (
+                <button
+                  className={`tab-btn ${activeTab === 'alert' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('alert'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+                >
+                  <AlertTriangle size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  Alerta en Portada
+                </button>
+              )}
 
-              <button
-                className={`tab-btn ${activeTab === 'slides' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('slides'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
-              >
-                <Sliders size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                Slider Portada ({slides.length})
-              </button>
+              {/* Slider Portada: Solo Superadmin y Comandancia */}
+              {(isSuperadmin || isComandancia) && (
+                <button
+                  className={`tab-btn ${activeTab === 'slides' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('slides'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+                >
+                  <Sliders size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  Slider Portada ({slides.length})
+                </button>
+              )}
 
-              <button
-                className={`tab-btn ${activeTab === 'companies' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('companies'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
-              >
-                <Building2 size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                Compañías ({companies.length})
-              </button>
+              {/* Compañías: Superadmin ve las 7 */}
+              {isSuperadmin && (
+                <button
+                  className={`tab-btn ${activeTab === 'companies' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('companies'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+                >
+                  <Building2 size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  Compañías ({companies.length})
+                </button>
+              )}
 
-              <button
-                className={`tab-btn ${activeTab === 'institution' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('institution'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
-              >
-                <Landmark size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                Institución & Mando
-              </button>
+              {/* Mi Compañía: Para Company Admin (solo su compañía asignada) */}
+              {isCompanyAdmin && myCompany && (
+                <button
+                  className={`tab-btn ${activeTab === 'edit-company' ? 'active' : ''}`}
+                  onClick={() => { 
+                    setEditingCompany(myCompany);
+                    setCompanyUnitsInput(myCompany.units ? myCompany.units.join(', ') : '');
+                    setActiveTab('edit-company'); 
+                  }}
+                >
+                  <Building2 size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  Datos de Mi Compañía ({myCompany.shortName})
+                </button>
+              )}
 
-              <button
-                className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('stats'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
-              >
-                <BarChart3 size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                Estadísticas
-              </button>
+              {/* Institución & Mando: Solo Superadmin */}
+              {isSuperadmin && (
+                <button
+                  className={`tab-btn ${activeTab === 'institution' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('institution'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+                >
+                  <Landmark size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  Institución & Mando
+                </button>
+              )}
+
+              {/* Estadísticas: Solo Superadmin */}
+              {isSuperadmin && (
+                <button
+                  className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('stats'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+                >
+                  <BarChart3 size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  Estadísticas
+                </button>
+              )}
+
+              {/* Gestión de Usuarios en BD: Solo Superadmin */}
+              {isSuperadmin && (
+                <button
+                  className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('users'); setEditingItem(null); setEditingSlide(null); setEditingCompany(null); }}
+                >
+                  <Users size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                  Usuarios & Accesos ({systemUsers.length})
+                </button>
+              )}
 
               {activeTab === 'edit-news' && (
                 <button className="tab-btn active">
@@ -655,7 +1018,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               )}
 
-              {activeTab === 'edit-company' && (
+              {activeTab === 'edit-company' && isSuperadmin && (
                 <button className="tab-btn active">
                   <Edit3 size={16} style={{ display: 'inline', marginRight: '6px' }} />
                   {editingCompany ? `Editar Cía. Nº ${editingCompany.number}` : 'Editar Compañía'}
@@ -1999,6 +2362,291 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span>{isSubmitting ? 'Guardando...' : 'Actualizar Estadísticas en Portada'}</span>
                 </button>
               </form>
+            )}
+
+            {/* Tab: Gestión de Usuarios y Accesos en Base de Datos (Solo Superadmin) */}
+            {activeTab === 'users' && isSuperadmin && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Users size={20} style={{ color: 'var(--cbs-red)' }} />
+                      <span>Gestión de Usuarios y Accesos Institucionales</span>
+                    </h4>
+                    <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
+                      Cuentas almacenadas y gestionadas directamente en la base de datos (PostgreSQL / Backend).
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      type="button"
+                      className="btn-outline" 
+                      onClick={fetchUsers}
+                      title="Refrescar lista desde la base de datos"
+                      style={{ padding: '0.5rem 0.85rem' }}
+                    >
+                      <RefreshCw size={15} />
+                    </button>
+                    <button 
+                      type="button"
+                      className="btn-primary" 
+                      onClick={() => {
+                        setEditingUser({
+                          username: '',
+                          name: '',
+                          role: 'COMPANY_ADMIN',
+                          companyId: '1',
+                          mustChangePassword: true
+                        });
+                        setNewUserPassword('bombero2026');
+                        setUserFormError('');
+                        setUserModalOpen(true);
+                      }}
+                      style={{ padding: '0.5rem 1rem' }}
+                    >
+                      <UserPlus size={16} />
+                      <span>Nuevo Usuario</span>
+                    </button>
+                  </div>
+                </div>
+
+                {loadingUsers ? (
+                  <div style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                    <Loader2 size={24} className="spin" style={{ margin: '0 auto 0.5rem auto' }} />
+                    <p>Consultando usuarios en la base de datos...</p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                    <table className="admin-table" style={{ margin: 0 }}>
+                      <thead>
+                        <tr>
+                          <th>Usuario</th>
+                          <th>Nombre / Oficialidad</th>
+                          <th>Rol</th>
+                          <th>Compañía</th>
+                          <th>Estado Clave</th>
+                          <th style={{ textAlign: 'right' }}>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {systemUsers.map(u => {
+                          const userComp = companies.find(c => c.id === u.companyId || c.number.toString() === u.companyId);
+                          return (
+                            <tr key={u.id}>
+                              <td>
+                                <strong style={{ color: '#0F172A', fontFamily: 'monospace', fontSize: '0.92rem' }}>
+                                  {u.username}
+                                </strong>
+                              </td>
+                              <td>{u.name}</td>
+                              <td>
+                                <span style={{
+                                  backgroundColor: u.role === 'SUPERADMIN' ? '#DC2626' : (u.role === 'COMANDANCIA' ? '#2563EB' : '#15803D'),
+                                  color: '#FFFFFF',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  padding: '2px 8px',
+                                  borderRadius: '4px'
+                                }}>
+                                  {u.role}
+                                </span>
+                              </td>
+                              <td>
+                                {userComp ? (
+                                  <span style={{ fontSize: '0.85rem', color: '#334155' }}>
+                                    {userComp.shortName}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Todo el Cuerpo</span>
+                                )}
+                              </td>
+                              <td>
+                                {u.mustChangePassword ? (
+                                  <span style={{
+                                    backgroundColor: '#FEF3C7',
+                                    color: '#B45309',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    <Key size={12} /> Cambio Obligatorio
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    backgroundColor: '#DCFCE7',
+                                    color: '#15803D',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    padding: '2px 8px',
+                                    borderRadius: '4px'
+                                  }}>
+                                    Activa
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetUserPassword(u)}
+                                    title="Resetear contraseña a temporal (exigirá cambio en su próximo ingreso)"
+                                    style={{
+                                      background: '#F1F5F9',
+                                      border: '1px solid #CBD5E1',
+                                      color: '#334155',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}
+                                  >
+                                    <Key size={12} />
+                                    <span>Reset Clave</span>
+                                  </button>
+
+                                  {u.username !== 'admin' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteUser(u)}
+                                      title="Eliminar usuario de la base de datos"
+                                      style={{
+                                        background: '#FEE2E2',
+                                        border: '1px solid #FECACA',
+                                        color: '#DC2626',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '0.75rem',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Modal / Formulario para crear usuario */}
+                {userModalOpen && editingUser && (
+                  <div className="admin-modal-backdrop" style={{ zIndex: 2100 }}>
+                    <div className="admin-modal-container" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+                      <div className="admin-modal-header" style={{ backgroundColor: '#1E293B' }}>
+                        <h4 style={{ margin: 0, color: '#FFFFFF', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <UserPlus size={18} />
+                          <span>Nuevo Encargado Institucional</span>
+                        </h4>
+                        <button onClick={() => setUserModalOpen(false)} style={{ color: '#FFFFFF', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      <div className="admin-modal-body">
+                        {userFormError && (
+                          <div style={{ backgroundColor: '#FEF2F2', color: '#DC2626', padding: '0.6rem 0.8rem', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                            ⚠️ {userFormError}
+                          </div>
+                        )}
+
+                        <form onSubmit={handleSaveUser}>
+                          <div className="admin-form-group">
+                            <label className="admin-label">Nombre de Usuario (Login)</label>
+                            <input 
+                              type="text" 
+                              required
+                              className="admin-input" 
+                              value={editingUser.username || ''}
+                              onChange={(e) => setEditingUser({ ...editingUser, username: e.target.value })}
+                              placeholder="ej. cia1, prensa_curimon"
+                            />
+                          </div>
+
+                          <div className="admin-form-group">
+                            <label className="admin-label">Nombre y Cargo de la Persona u Oficial</label>
+                            <input 
+                              type="text" 
+                              required
+                              className="admin-input" 
+                              value={editingUser.name || ''}
+                              onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                              placeholder="ej. Teniente de Difusión 1ª Cía"
+                            />
+                          </div>
+
+                          <div className="admin-form-group">
+                            <label className="admin-label">Rol Institucional</label>
+                            <select 
+                              className="admin-select"
+                              value={editingUser.role || 'COMPANY_ADMIN'}
+                              onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as any })}
+                            >
+                              <option value="COMPANY_ADMIN">Encargado de Compañía (Solo su Cía)</option>
+                              <option value="COMANDANCIA">Comandancia / Prensa General</option>
+                              <option value="SUPERADMIN">Superadministrador (Control Total)</option>
+                            </select>
+                          </div>
+
+                          {editingUser.role === 'COMPANY_ADMIN' && (
+                            <div className="admin-form-group">
+                              <label className="admin-label">Compañía Asignada</label>
+                              <select 
+                                className="admin-select"
+                                value={editingUser.companyId || '1'}
+                                onChange={(e) => setEditingUser({ ...editingUser, companyId: e.target.value })}
+                              >
+                                {companies.map(c => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.shortName} (Cía. Nº {c.number})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          <div className="admin-form-group">
+                            <label className="admin-label">Contraseña Temporal Inicial</label>
+                            <input 
+                              type="password" 
+                              required
+                              minLength={6}
+                              className="admin-input" 
+                              value={newUserPassword}
+                              onChange={(e) => setNewUserPassword(e.target.value)}
+                              placeholder="Mínimo 6 caracteres (ej. bombero2026)"
+                            />
+                            <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
+                              Al ingresar por primera vez, el sistema le exigirá definir su propia clave personal.
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+                            <button type="button" className="btn-outline" onClick={() => setUserModalOpen(false)}>
+                              Cancelar
+                            </button>
+                            <button type="submit" className="btn-primary">
+                              <Save size={15} />
+                              <span>Crear Usuario en BD</span>
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

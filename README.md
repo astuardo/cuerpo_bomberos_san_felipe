@@ -30,16 +30,23 @@ Este proyecto implementa el sitio web oficial y portal autoadministrable para el
 
 ---
 
-## 🔐 Panel de Administración (CMS para el Encargado de Prensa)
+## 🔐 Panel de Administración y Sistema de Roles Institucionales (RBAC)
 
-El portal incluye un panel de administración accesible directamente desde el botón **"Acceso Encargado"** en la cabecera:
-* **Credenciales por Defecto:**
-  * **Usuario:** `admin`
-  * **Contraseña:** `bomberosanfelipe2026`
-* **Funcionalidades del CMS:**
-  * **Publicación de Noticias:** Título, categoría (*Actualidad, Emergencias, Capacitación, Compañías*), autor, extracto, cuerpo completo, foto de portada y selector de estado (*Publicado* o *Borrador*).
-  * **Edición y Eliminación:** Gestión completa de notas de prensa en tiempo real.
-  * **Control de Alertas en Portada:** Interruptor para encender/apagar el cintillo de alerta de emergencia y redactar avisos urgentes para la población del Valle.
+El portal cuenta con un sistema de perfiles y permisos gestionado **100% en base de datos** (PostgreSQL / Backend):
+
+### 1. Cuentas Base Sembradas por Defecto:
+* **👑 Superadministrador (`admin`):** Control total del portal, gestión de usuarios, restablecimiento de contraseñas, edición de las 7 compañías, directorio y estadísticas.
+* **📢 Comandancia y Prensa (`comandancia`):** Emisión y control del cintillo de alertas de emergencia comunal en vivo, comunicados institucionales y carrusel de portada.
+* **🚒 Encargados de Compañía (`cia1` a `cia7`):**
+  * `cia1` (1ª Cía. Bomba Aconcagua) · `cia2` (2ª Cía. La Internacional)
+  * `cia3` (3ª Cía. San Felipe) · `cia4` (4ª Cía. Bomba Almendral)
+  * `cia5` (5ª Cía. Bomba Curimón) · `cia6` (6ª Cía. Bomba Panquehue GERSA)
+  * `cia7` (7ª Cía. Rescate Agreste y Montaña)
+  * *Permisos:* Cada encargado solo puede gestionar las noticias de su propia compañía y actualizar la ficha de su cuartel, lema, unidades y mando (sin acceso a las otras 6 compañías ni alertas comunales).
+
+### 2. Seguridad en Primer Inicio de Sesión:
+* Todas las cuentas base exigen **cambio obligatorio de contraseña** en su primer ingreso mediante una vista bloqueante de seguridad, actualizándose directamente en la base de datos.
+* El Superadmin puede crear nuevos usuarios o restablecer contraseñas en cualquier momento desde la pestaña **"Usuarios & Accesos"**.
 
 ---
 

@@ -45,11 +45,27 @@ export interface StatsData {
   volunteerPercentage: number;
 }
 
+export type RoleType = 'SUPERADMIN' | 'COMANDANCIA' | 'COMPANY_ADMIN';
+
 export interface AdminUser {
+  id?: string;
   username: string;
   name: string;
-  role: string;
+  role: RoleType;
+  companyId?: string | null;
+  mustChangePassword?: boolean;
   token?: string;
+}
+
+export interface SystemUser {
+  id: string;
+  username: string;
+  name: string;
+  role: RoleType;
+  companyId?: string | null;
+  mustChangePassword: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface HeroSlide {
